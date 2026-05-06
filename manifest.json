@@ -1,0 +1,26 @@
+{
+  "name": "Casanova Clean Pro",
+  "short_name": "Casanova",
+  "description": "Gestion professionnelle des prestations d'équipe",
+  "start_url": "/casanova-clean-pro/casanova-clean-pro.html",
+  "scope": "/casanova-clean-pro/",
+  "display": "standalone",
+  "background_color": "#0F3D35",
+  "theme_color": "#0F3D35",
+  "orientation": "portrait-primary",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
