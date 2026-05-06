@@ -396,7 +396,7 @@ a{color:inherit;text-decoration:none}
       <!-- Toutes les missions -->
       <div class="sec-t">Toutes les missions</div>
       <div style="background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);overflow:hidden;box-shadow:var(--sh);overflow-x:auto;margin-bottom:1.75rem">
-        <table class="tbl"><thead><tr><th>Mission</th><th>Type</th><th>Date</th><th>Montant</th><th>Assignée à</th><th>Statut</th><th>Action</th></tr></thead><tbody id="admin-tbody"></tbody></table>
+        <table class="tbl"><thead><tr><th>Mission</th><th>Type</th><th>Date</th><th>Montant</th><th>Assignée à</th><th>Statut</th><th>Calendrier</th><th>Action</th></tr></thead><tbody id="admin-tbody"></tbody></table>
       </div>
 
       <!-- Suivi équipe -->
@@ -431,8 +431,11 @@ a{color:inherit;text-decoration:none}
   <div class="modal">
     <div class="modal-hdr"><div class="modal-hdr-t" id="tpl-modal-t">Nouveau modèle de fiche</div><button class="modal-x" onclick="closeTpl()">✕</button></div>
     <div class="modal-body">
-      <div class="frow"><div class="fg"><label class="fl">Type</label>
-        <select class="fsel" id="tpl-type"><option value="ménage">🧹 Ménage</option><option value="repassage">👔 Repassage</option><option value="vitres">🪟 Vitres</option><option value="jardinage">🌿 Jardinage</option><option value="débarras">📦 Débarras</option><option value="autre">✨ Autre</option></select></div>
+      <div class="frow"><div class="fg"><label class="fl">Type de prestation</label>
+        <div style="display:flex;gap:.4rem">
+          <select class="fsel" id="tpl-type" style="flex:1"></select>
+          <button type="button" class="btn btn-o btn-sm" onclick="openManageTypes()" title="Gérer les types">⚙️</button>
+        </div></div>
         <div class="fg"><label class="fl">Tarif de base (€)</label><input class="ffi" type="number" id="tpl-amount" placeholder="ex: 80" /></div></div>
       <div class="fg"><label class="fl">Titre du modèle</label><input class="ffi" id="tpl-title" placeholder="ex: Ménage appartement standard 3h" /></div>
       <div class="fg"><label class="fl">Adresse du lieu</label><input class="ffi" id="tpl-addr" placeholder="ex: 12 rue des Mimosas, 06000 Nice" /></div>
@@ -465,6 +468,12 @@ a{color:inherit;text-decoration:none}
       </div>
       <div class="fg"><label class="fl">Assigner à un agent</label>
         <select class="fsel" id="d-assign"><option value="">— Laisser disponible —</option></select>
+      </div>
+      <div class="fg"><label class="fl">Visibilité sur le calendrier des agents</label>
+        <select class="fsel" id="d-visibility">
+          <option value="visible">👁️ Visible — les agents voient cette mission sur le calendrier</option>
+          <option value="cachée">🔒 Cachée — visible uniquement par l'admin</option>
+        </select>
       </div>
       <div class="fg"><label class="fl">Notes spécifiques</label>
         <textarea class="fta" style="min-height:65px" id="d-notes" placeholder="Informations utiles pour cette mission…"></textarea>
@@ -636,6 +645,33 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<!-- ══ MODAL TYPES DE PRESTATION ══ -->
+<div class="overlay" id="types-ov">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-hdr">
+      <div class="modal-hdr-t">⚙️ Types de prestation</div>
+      <button class="modal-x" onclick="closeManageTypes()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-bar teal" style="margin-bottom:1rem">Personnalisez vos types de prestation. Ils apparaissent dans tous les modèles.</div>
+
+      <!-- Ajouter un type -->
+      <div style="display:flex;gap:.5rem;margin-bottom:1.25rem">
+        <input class="ffi" id="new-type-emoji" placeholder="🧹" style="width:60px;text-align:center;font-size:1.2rem;margin-bottom:0"/>
+        <input class="ffi" id="new-type-name" placeholder="Nom du type (ex: Nettoyage fin de chantier)" style="flex:1;margin-bottom:0"/>
+        <button class="btn btn-t btn-sm" onclick="addCustomType()" style="flex-shrink:0">+ Ajouter</button>
+      </div>
+
+      <!-- Liste des types -->
+      <div id="types-list" style="display:flex;flex-direction:column;gap:.4rem"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-o" onclick="closeManageTypes()">Annuler</button>
+      <button class="btn btn-t" onclick="saveTypes()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ LIGHTBOX ══ -->
 <div id="lightbox" onclick="closeLB()">
   <button id="lightbox-x" onclick="closeLB()">✕</button>
@@ -653,7 +689,93 @@ const fmtD=s=>{if(!s)return'';const d=new Date(s+'T00:00:00');return d.toLocaleD
 const fmtA=n=>Number(n).toLocaleString('fr-FR')+' €';
 const ini=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 const uid=()=>'x'+Date.now()+Math.random().toString(36).slice(2,6);
-const TI={ménage:'🧹',repassage:'👔',vitres:'🪟',jardinage:'🌿',débarras:'📦',autre:'✨'};
+// Types dynamiques (remplace TI statique)
+const TI_DEFAULT={ménage:'🧹',menage:'🧹',repassage:'👔',vitres:'🪟',jardinage:'🌿',débarras:'📦',debarras:'📦',autre:'✨'};
+function getTypeIcon(typeId){
+  if(!typeId) return '✨';
+  const t=db.types&&db.types[typeId];
+  if(t) return t.emoji||'✨';
+  return TI_DEFAULT[typeId]||'✨';
+}
+function getTypeName(typeId){
+  if(!typeId) return typeId||'';
+  const t=db.types&&db.types[typeId];
+  if(t) return t.name||typeId;
+  return typeId;
+}
+// Alias pour compatibilité
+const TI=new Proxy({},{get(_,k){return getTypeIcon(k);}});
+const types=()=>Object.values(db.types||{});
+
+// ── Peupler le select des types ──
+function populateTypeSelect(selectId, selectedVal){
+  const sel=document.getElementById(selectId);
+  if(!sel) return;
+  sel.innerHTML='';
+  types().forEach(t=>{
+    const o=document.createElement('option');
+    o.value=t.id;
+    o.textContent=t.emoji+' '+t.name;
+    if(t.id===selectedVal) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+// ── Gestion des types ──
+function openManageTypes(){
+  rTypesList();
+  document.getElementById('new-type-emoji').value='';
+  document.getElementById('new-type-name').value='';
+  document.getElementById('types-ov').classList.add('on');
+}
+function closeManageTypes(){
+  document.getElementById('types-ov').classList.remove('on');
+  // Repeupler le select du modal modèle
+  const curVal=document.getElementById('tpl-type')?.value;
+  populateTypeSelect('tpl-type', curVal);
+}
+
+function rTypesList(){
+  const list=document.getElementById('types-list');
+  const allTypes=types();
+  if(!allTypes.length){list.innerHTML=`<div style="text-align:center;color:var(--ink3);font-size:.82rem;padding:1rem">Aucun type défini</div>`;return}
+  list.innerHTML=allTypes.map(t=>`
+    <div style="display:flex;align-items:center;gap:.6rem;padding:.6rem .85rem;background:var(--paper);border-radius:var(--radius-xs);border:1px solid var(--paper3)">
+      <span style="font-size:1.25rem;width:28px;text-align:center">${t.emoji}</span>
+      <span style="flex:1;font-size:.88rem;font-weight:500">${t.name}</span>
+      <button class="btn btn-r btn-xs" onclick="delType('${t.id}')">🗑</button>
+    </div>`).join('');
+}
+
+function addCustomType(){
+  const emoji=(document.getElementById('new-type-emoji').value||'').trim()||'✨';
+  const name=(document.getElementById('new-type-name').value||'').trim();
+  if(!name){alert('Donnez un nom à ce type');document.getElementById('new-type-name').focus();return}
+  const id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'_'+Date.now().toString(36);
+  if(!db.types) db.types={};
+  db.types[id]={id,emoji,name};
+  document.getElementById('new-type-emoji').value='';
+  document.getElementById('new-type-name').value='';
+  rTypesList();
+  toast('✅ Type "'+name+'" ajouté !');
+}
+
+function delType(id){
+  // Vérifier si des modèles utilisent ce type
+  const used=templates().filter(t=>t.type===id);
+  if(used.length){
+    if(!confirm(`Ce type est utilisé par ${used.length} modèle(s). Supprimer quand même ?`)) return;
+  }
+  if(!confirm('Supprimer ce type ?')) return;
+  delete db.types[id];
+  rTypesList();
+}
+
+function saveTypes(){
+  saveDB();
+  closeManageTypes();
+  toast('✅ Types enregistrés !');
+}
 
 function toast(msg,ms=3400){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),ms)}
 function openLB(src){document.getElementById('lb-img').src=src;document.getElementById('lightbox').classList.add('on')}
@@ -691,6 +813,7 @@ function initFirebase(onReady){
       db.missions = db.missions || {};
       db.members = db.members || {};
       db.templates = db.templates || {};
+      db.types = db.types || initDB().types;
     } else {
       // Première utilisation — initialiser avec les données par défaut
       db = initDB();
@@ -784,7 +907,15 @@ function initDB(){
       't2':{id:'t2',type:'repassage',title:'Repassage linge 2h',desc:'Chemises, pantalons, linge courant. Repassage soigné.',amount:40,duration:'2h',notes:'Fer à repasser sur place',addr:'',photos:[]},
       't3':{id:'t3',type:'vitres',title:'Nettoyage vitres int/ext',desc:'Vitres intérieur + extérieur, encadrements, rebords de fenêtre',amount:90,duration:'3h',notes:'Raclette et produit fournis',addr:'',photos:[]},
     },
-    missions:{}
+    missions:{},
+    types:{
+      'menage':    {id:'menage',    emoji:'🧹', name:'Ménage'},
+      'repassage': {id:'repassage', emoji:'👔', name:'Repassage'},
+      'vitres':    {id:'vitres',    emoji:'🪟', name:'Vitres'},
+      'jardinage': {id:'jardinage', emoji:'🌿', name:'Jardinage'},
+      'debarras':  {id:'debarras',  emoji:'📦', name:'Débarras'},
+      'autre':     {id:'autre',     emoji:'✨', name:'Autre'},
+    }
   };
 }
 
@@ -960,14 +1091,15 @@ function rCal(){
     const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     // Admin voit tout, agent voit uniquement ses missions
     const allDayM=missions().filter(m=>m.date===dateStr);
+    // Agents : ne voient pas les missions cachées par l'admin sauf si c'est la leur
     const dayM=cu.role==='admin'
       ? allDayM
-      : allDayM.filter(m=>m.assignedTo===cu.id);
+      : allDayM.filter(m=>m.visibility!=='cachée' || m.assignedTo===cu.id);
     const isToday=dateStr===todayStr;
     const dots=dayM.slice(0,3).map(m=>{
       const cls=m.status==='terminée'?'done':m.assignedTo?'assigned':'';
       const title=m.title.length>12?m.title.slice(0,12)+'…':m.title;
-      return`<div class="cal-dot ${cls}" title="${m.title}">${TI[m.type]||'✨'} ${title}</div>`;
+      return`<div class="cal-dot ${cls}" title="${m.title}">${getTypeIcon(m.type)||'✨'} ${title}</div>`;
     }).join('');
     html+=`<div class="cal-day${isToday?' today':''}" onclick="calDayClick('${dateStr}')">
       <div class="cal-day-num">${d}</div>${dots}
@@ -983,10 +1115,10 @@ function rCal(){
 function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++}if(calMonth<0){calMonth=11;calYear--}rCal()}
 function calDayClick(dateStr){
   const allDayM=missions().filter(m=>m.date===dateStr);
-  // Agent : uniquement ses missions ; Admin : toutes
+  // Agents : missions cachées invisibles sauf si assignées à eux
   const dayM=cu.role==='admin'
     ? allDayM
-    : allDayM.filter(m=>m.assignedTo===cu.id);
+    : allDayM.filter(m=>m.visibility!=='cachée' || m.assignedTo===cu.id);
   const det=document.getElementById('cal-day-detail');
   det.style.display='block';
   const label=fmtD(dateStr);
@@ -1065,7 +1197,7 @@ function mRow(m,ctx){
     }
   }
   const fp=m.photos&&m.photos.length?m.photos[0]:null;
-  const iconEl=fp?`<div class="m-row-ico" style="padding:0"><img src="${fp}" style="width:100%;height:100%;object-fit:cover"/></div>`:`<div class="m-row-ico">${TI[m.type]||'✨'}</div>`;
+  const iconEl=fp?`<div class="m-row-ico" style="padding:0"><img src="${fp}" style="width:100%;height:100%;object-fit:cover"/></div>`:`<div class="m-row-ico">${getTypeIcon(m.type)||'✨'}</div>`;
   return`<div class="m-row">${iconEl}<div class="m-row-info"><div class="m-row-t">${m.title}</div><div class="m-row-s"><span>${m.clientName||''}</span>${m.addr?`<span>·</span><span style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.addr}</span>`:''}<span>·</span><span>${fmtD(m.date)}</span>${sBadge(m)}${crBadge(m)}</div></div><div class="m-row-r"><div class="m-price-sm">${fmtA(m.amount)}</div><button class="ico-btn" title="Voir la fiche" onclick="openDetail('${m.id}')">🗂</button>${act}</div></div>`;
 }
 
@@ -1100,8 +1232,8 @@ function rAvail(){
     const lastCR=m.crText?m.crText.slice(0,60)+'…':null;
     return`<div class="m-card">
       <div class="m-card-photo">
-        ${fp?`<img src="${fp}" onclick="openLB('${fp}')" style="cursor:zoom-in"/>`:`<div class="m-card-np"><span style="font-size:1.8rem">${TI[m.type]||'✨'}</span><span>Aucune photo</span></div>`}
-        <div class="type-pip">${TI[m.type]||'✨'} ${m.type}</div>
+        ${fp?`<img src="${fp}" onclick="openLB('${fp}')" style="cursor:zoom-in"/>`:`<div class="m-card-np"><span style="font-size:1.8rem">${getTypeIcon(m.type)||'✨'}</span><span>Aucune photo</span></div>`}
+        <div class="type-pip">${getTypeIcon(m.type)||'✨'} ${m.type}</div>
         ${m.photos&&m.photos.length>1?`<div class="ph-count">📷 ${m.photos.length}</div>`:''}
       </div>
       <div class="m-card-body">
@@ -1669,14 +1801,17 @@ function rAdmin(){
   const tbody=document.getElementById('admin-tbody');
   tbody.innerHTML=missions().map(m=>{
     const ag=m.assignedTo?members().find(x=>x.id===m.assignedTo):null;
+    const visIcon=m.visibility==='cachée'?'🔒 Cachée':'👁️ Visible';
+    const visBtnClass=m.visibility==='cachée'?'btn-amber':'btn-o';
     return`<tr>
       <td><strong>${m.title}</strong>${m.clientName?`<br><span style="color:var(--ink3);font-size:.75rem">${m.clientName}</span>`:''}</td>
-      <td>${TI[m.type]||'✨'} ${m.type}</td>
+      <td>${getTypeIcon(m.type)||'✨'} ${getTypeName(m.type)}</td>
       <td>${fmtD(m.date)}</td>
       <td style="font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--teal)">${fmtA(m.amount)}</td>
       <td>${ag?ag.name:`<span style="color:var(--ink3)">Non assignée</span>`}
-        ${cu.role==='admin'?`<button class="btn btn-o btn-xs" style="margin-left:4px" onclick="openAssign('${m.id}')">Attribuer</button>`:''}</td>
+        <button class="btn btn-o btn-xs" style="margin-left:4px" onclick="openAssign('${m.id}')">Attribuer</button></td>
       <td>${sBadge(m)}</td>
+      <td><button class="btn ${visBtnClass} btn-xs" onclick="toggleVisibility('${m.id}')" title="Changer la visibilité">${visIcon}</button></td>
       <td style="display:flex;gap:4px">
         <button class="ico-btn" onclick="openDetail('${m.id}')">🗂</button>
         <button class="btn btn-r btn-xs" onclick="delM('${m.id}')">Suppr.</button>
@@ -1858,6 +1993,17 @@ function confirmAssign(){
 
 function delM(id){if(!confirm('Supprimer cette mission ?'))return;delete db.missions[id];saveDB();rAdmin();toast('Mission supprimée.')}
 
+function toggleVisibility(id){
+  const m=db.missions[id];
+  if(!m)return;
+  m.visibility = m.visibility==='cachée' ? 'visible' : 'cachée';
+  saveDB();
+  rAdmin();
+  toast(m.visibility==='cachée'
+    ? '🔒 Mission cachée du calendrier des agents'
+    : '👁️ Mission visible sur le calendrier des agents');
+}
+
 // ════════ TEMPLATES ════════
 function rTplGrid(){
   const grid=document.getElementById('tpl-grid');
@@ -1865,8 +2011,8 @@ function rTplGrid(){
   grid.innerHTML=templates().map(t=>`
     <div class="m-card">
       <div class="m-card-photo">
-        ${t.photos&&t.photos.length?`<img src="${t.photos[0]}" onclick="openLB('${t.photos[0]}')" style="cursor:zoom-in"/>${t.photos.length>1?`<div class="ph-count">📷 ${t.photos.length}</div>`:''}`:`<div class="m-card-np"><span style="font-size:1.8rem">${TI[t.type]||'✨'}</span><span>Aucune photo</span></div>`}
-        <div class="type-pip">${TI[t.type]||'✨'} ${t.type}</div>
+        ${t.photos&&t.photos.length?`<img src="${t.photos[0]}" onclick="openLB('${t.photos[0]}')" style="cursor:zoom-in"/>${t.photos.length>1?`<div class="ph-count">📷 ${t.photos.length}</div>`:''}`:`<div class="m-card-np"><span style="font-size:1.8rem">${getTypeIcon(t.type)||'✨'}</span><span>Aucune photo</span></div>`}
+        <div class="type-pip">${getTypeIcon(t.type)||'✨'} ${t.type}</div>
       </div>
       <div class="m-card-body">
         <div class="m-card-t">${t.title}</div>
@@ -1890,7 +2036,8 @@ function openTpl(id){
   editTplId=id||null;tplPh=[];
   const t=id?templates().find(x=>x.id===id):null;
   document.getElementById('tpl-modal-t').textContent=id?'Modifier le modèle':'Nouveau modèle de fiche';
-  document.getElementById('tpl-type').value=t?t.type:'ménage';
+  populateTypeSelect('tpl-type', t?t.type:'');
+  if(!t) document.getElementById('tpl-type').selectedIndex=0;
   document.getElementById('tpl-title').value=t?t.title:'';
   document.getElementById('tpl-addr').value=t?t.addr||'':'';
   document.getElementById('tpl-desc').value=t?t.desc:'';
@@ -1936,7 +2083,7 @@ function openNewMission(preDate){
   // Plusieurs modèles : mini-sélecteur dans une modale
   const opts=templates().map((t,i)=>`
     <div onclick="closeMiniSel();openDup('${t.id}','${preDate||''}')" style="display:flex;align-items:center;gap:.85rem;padding:.75rem 1rem;border-radius:var(--radius-sm);border:1.5px solid var(--paper3);cursor:pointer;transition:all .15s;background:#fff;margin-bottom:.5rem" onmouseover="this.style.borderColor='var(--teal)';this.style.background='var(--teal-l)'" onmouseout="this.style.borderColor='var(--paper3)';this.style.background='#fff'">
-      <span style="font-size:1.4rem">${TI[t.type]||'✨'}</span>
+      <span style="font-size:1.4rem">${getTypeIcon(t.type)||'✨'}</span>
       <div><div style="font-weight:500;font-size:.88rem">${t.title}</div><div style="font-size:.75rem;color:var(--ink3)">${fmtA(t.amount)}${t.duration?' · ⏱ '+t.duration:''}</div></div>
     </div>`).join('');
   // Injecter dans le modal mini
@@ -2040,6 +2187,7 @@ function openDup(tplId, preDate){
   document.getElementById('d-amount').value=t.amount||'';
   document.getElementById('d-date').value=preDate&&preDate!==''?preDate:tod();
   document.getElementById('d-notes').value='';
+  document.getElementById('d-visibility').value='visible';
   // Liste des agents
   const sel=document.getElementById('d-assign');
   sel.innerHTML='<option value="">— Laisser disponible —</option>';
@@ -2091,6 +2239,7 @@ function createMission(){
       phone:'',
       email:'',
       clientNotes:(document.getElementById('d-notes').value||'').trim(),
+      visibility:document.getElementById('d-visibility').value||'visible',
       amount,
       date,
       status:assignTo?'en cours':'disponible',
