@@ -1106,12 +1106,11 @@ function rCal(){
   }
   for(let d=1;d<=daysInMonth;d++){
     const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    // Admin voit tout, agent voit uniquement ses missions
     const allDayM=missions().filter(m=>m.date===dateStr);
-    // Agents : ne voient pas les missions cachées par l'admin sauf si c'est la leur
+    // Admin voit tout — Agent voit uniquement SES missions assignées
     const dayM=cu.role==='admin'
       ? allDayM
-      : allDayM.filter(m=>m.visibility!=='cachée' || m.assignedTo===cu.id);
+      : allDayM.filter(m=>m.assignedTo===cu.id);
     const isToday=dateStr===todayStr;
     const dots=dayM.slice(0,3).map(m=>{
       const cls=m.status==='terminée'?'done':m.assignedTo?'assigned':'';
@@ -1132,10 +1131,10 @@ function rCal(){
 function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++}if(calMonth<0){calMonth=11;calYear--}rCal()}
 function calDayClick(dateStr){
   const allDayM=missions().filter(m=>m.date===dateStr);
-  // Agents : missions cachées invisibles sauf si assignées à eux
+  // Admin voit tout — Agent voit uniquement SES missions assignées
   const dayM=cu.role==='admin'
     ? allDayM
-    : allDayM.filter(m=>m.visibility!=='cachée' || m.assignedTo===cu.id);
+    : allDayM.filter(m=>m.assignedTo===cu.id);
   const det=document.getElementById('cal-day-detail');
   det.style.display='block';
   const label=fmtD(dateStr);
@@ -1549,7 +1548,17 @@ function submitCR(){
 
 // ════════ FICHE DÉTAIL ════════
 function openDetail(id){
-  const m=missions().find(x=>x.id===id);
+  let m=missions().find(x=>x.id===id);
+  if(!m){
+    // Mission pas trouvée localement — recharger depuis Firebase
+    fbDB.ref('casanova/missions/'+id).once('value').then(snap=>{
+      const data=snap.val();
+      if(!data){toast('❌ Mission introuvable');return}
+      db.missions[id]=data;
+      openDetail(id); // Réessayer
+    });
+    return;
+  }
   detailId=id;
   document.getElementById('det-title').textContent=m.title+(m.clientName?' — '+m.clientName:'');
   // Firebase peut retourner un objet {0:..., 1:...} au lieu d'un array — on normalise
@@ -2031,8 +2040,9 @@ function confirmAssign(){
 function delM(id){
   if(!confirm('Supprimer cette mission ?'))return;
   fbDB.ref('casanova/missions/'+id).set(null)
-    .then(()=>{
-      delete db.missions[id];
+    .then(()=>fbDB.ref('casanova/missions').once('value'))
+    .then(snap=>{
+      db.missions = snap.val() || {};
       rAdmin();
       toast('✅ Mission supprimée.');
     })
@@ -2109,15 +2119,18 @@ function clearTplPhotos(id){
 
 function delTpl(id){
   if(!confirm('Supprimer ce modèle ?'))return;
-  // Mettre null = suppression garantie dans Firebase
   fbDB.ref('casanova/templates/'+id).set(null)
     .then(()=>{
-      delete db.templates[id];
+      // Recharger les templates depuis Firebase pour confirmer la suppression
+      return fbDB.ref('casanova/templates').once('value');
+    })
+    .then(snap=>{
+      db.templates = snap.val() || {};
       rTplGrid();
       toast('✅ Modèle supprimé.');
     })
     .catch(err=>{
-      alert('❌ Erreur Firebase : '+err.message+'\n\nVérifiez les règles Firebase dans la console.');
+      alert('❌ Erreur : '+err.message);
     });
 }
 function saveTpl(){
@@ -2337,7 +2350,7 @@ function createMission(){
 // ════════ PHOTOS ════════
 // ════════ CLOUDINARY — STOCKAGE PHOTOS ════════
 const CLOUDINARY_CLOUD = 'dortcgc2u';
-const CLOUDINARY_PRESET = 'aibkyw8j';
+const CLOUDINARY_PRESET = 'casanova';
 
 async function uploadPhoto(file){
   // Compresser d'abord
