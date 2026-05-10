@@ -1561,13 +1561,12 @@ function openDetail(id){
   }
   detailId=id;
   document.getElementById('det-title').textContent=m.title+(m.clientName?' — '+m.clientName:'');
-  // Firebase peut retourner un objet {0:..., 1:...} au lieu d'un array — on normalise
-  const toArr=v=>!v?[]:Array.isArray(v)?v:Object.values(v);
   const photos=toArr(m.photos);
   const crPhotos=toArr(m.crPhotos);
   const agent=m.assignedTo?members().find(x=>x.id===m.assignedTo):null;
   const cl=m.crChecklist||{};
   const checkedItems=[...toArr(cl.materiel),...toArr(cl.produits),...toArr(cl.autres)];
+  const crHistoryArr=toArr(m.crHistory);
 
   let html=``;
   // Photos du logement
@@ -1602,8 +1601,8 @@ function openDetail(id){
   if(canSeeCR){
     html+=`<div class="fdiv"></div>`;
     // Construire l'historique complet
-    const history = m.crHistory && m.crHistory.length
-      ? [...m.crHistory].reverse() // plus récent en premier
+    const history = crHistoryArr.length
+      ? [...crHistoryArr].reverse()
       : hasCR ? [{
           text:m.crText, status:m.crStatus, custom:m.crCustom,
           photos:toArr(m.crPhotos), checklist:m.crChecklist||{},
