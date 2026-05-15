@@ -1,14 +1,8 @@
-// Service Worker — Casanova Clean Pro
-const CACHE = 'casanova-v1';
-const ASSETS = [
-  '/casanova-clean-pro/casanova-clean-pro.html',
-  '/casanova-clean-pro/manifest.json'
-];
+const CACHE = 'casanova-v3';
+const ASSETS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e=>{
-  e.waitUntil(
-    caches.open(CACHE).then(c=>c.addAll(ASSETS))
-  );
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{}));
   self.skipWaiting();
 });
 
@@ -22,8 +16,9 @@ self.addEventListener('activate', e=>{
 });
 
 self.addEventListener('fetch', e=>{
-  // Pour Firebase : toujours réseau
-  if(e.request.url.includes('firebase') || e.request.url.includes('googleapis')){
+  if(e.request.url.includes('firebase')||
+     e.request.url.includes('googleapis')||
+     e.request.url.includes('cloudinary')){
     return;
   }
   e.respondWith(
