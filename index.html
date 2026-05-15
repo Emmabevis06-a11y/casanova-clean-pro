@@ -11,7 +11,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Casanova">
 <link rel="apple-touch-icon" href="icon-192.png">
-<!-- Firebase SDK -->
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-startup-image" href="icon-512.png">
+<!-- Empêche le zoom sur double-tap iOS -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -229,9 +233,28 @@ a{color:inherit;text-decoration:none}
   .stats-row{grid-template-columns:repeat(2,1fr)}
   .grid-2{grid-template-columns:1fr}
   .frow,.frow3{grid-template-columns:1fr}
-  .wrap{padding:1rem}
-  .tabs{padding:0 .75rem}
-  .topbar{padding:0 1rem}
+  .wrap{padding:.75rem}
+  .tabs{padding:0 .25rem}
+  .topbar{padding:0 .75rem}
+  /* Calendrier mobile */
+  .cal-day{min-height:48px;padding:2px}
+  .cal-day-num{font-size:.65rem;width:18px;height:18px}
+  .cal-dow{padding:.3rem .1rem;font-size:.55rem;letter-spacing:0}
+  .cal-dot{font-size:.5rem;padding:1px 2px}
+  .cal-wrap{overflow-x:hidden}
+  /* Tabs mobile — scroll horizontal */
+  .tabs{overflow-x:auto;scrollbar-width:none}
+  .tab{padding:.7rem .7rem;font-size:.72rem}
+  /* Stats mobile */
+  .stat-val{font-size:1.3rem}
+  /* Modal mobile */
+  .modal{max-height:95vh}
+  .modal-body{padding:1rem}
+}
+@media(max-width:380px){
+  .cal-day{min-height:40px;padding:1px}
+  .cal-dow{font-size:.5rem}
+  .tab{padding:.6rem .5rem;font-size:.68rem}
 }
 </style>
 </head>
@@ -1308,13 +1331,21 @@ function rMes(){
 // ════════ COMPTES RENDUS ════════
 function rCR(){
   const today = tod();
+  const currentMonth = today.slice(0,7); // YYYY-MM
 
   if(cu.role==='admin'){
-    // Admin : voit tout — en attente + soumis de toutes les missions
-    const pend = missions().filter(m=>m.crStatus===''&&m.status==='en cours');
-    const done = missions().filter(m=>m.crStatus!=='');
+    const pend = missions().filter(m=>m.crStatus===''&&m.status==='en cours')
+      .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const done = missions().filter(m=>m.crStatus!=='')
+      .sort((a,b)=>(b.crDate||b.date||'').localeCompare(a.crDate||a.date||''));
+
+    // Mois disponibles pour le filtre
+    const months=[...new Set(done.map(m=>(m.crDate||m.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+    const selMonth=document.getElementById('cr-month-filter')?.value||'';
+
     let html='';
 
+    // En attente
     if(pend.length){
       html+=`<div class="sec-t" style="color:var(--gold)">⏰ En attente (${pend.length})</div>`;
       html+=pend.map(m=>{
@@ -1323,9 +1354,10 @@ function rCR(){
           <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
             <div><div class="cr-block-t">${m.title}</div>
             <div class="cr-block-s">${fmtD(m.date)}${agent?' · 👤 '+agent.name:' · Non assignée'}</div></div>
-            <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0">
+            <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap">
               <span style="font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--teal)">${fmtA(m.amount)}</span>
-              <button class="btn btn-g btn-sm" onclick="openCR('${m.id}')">✍️ Rédiger</button>
+              ${agent?`<button class="btn btn-g btn-sm" onclick="relanceCR('${m.id}')">📨 Relancer</button>`:''}
+              <button class="btn btn-o btn-sm" onclick="openCR('${m.id}')">✍️ Rédiger</button>
             </div>
           </div>
         </div>`;
@@ -1333,9 +1365,25 @@ function rCR(){
       html+='<div style="height:1rem"></div>';
     }
 
+    // CR soumis — avec filtre par mois
     if(done.length){
-      html+=`<div class="sec-t">✅ Soumis (${done.length})</div>`;
-      html+=done.map(m=>crCard(m,true)).join('');
+      const monthNames={'01':'Janvier','02':'Février','03':'Mars','04':'Avril','05':'Mai','06':'Juin','07':'Juillet','08':'Août','09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'};
+      const fmtMonth=m=>{const[y,mo]=m.split('-');return(monthNames[mo]||mo)+' '+y;};
+
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem">
+        <div class="sec-t" style="margin-bottom:0">✅ CR soumis (${done.length})</div>
+        <select class="fsel" id="cr-month-filter" onchange="rCR()" style="width:auto;font-size:.78rem;padding:.35rem .6rem">
+          <option value="">Tous les mois</option>
+          ${months.map(m=>`<option value="${m}" ${m===selMonth?'selected':''}>${fmtMonth(m)}</option>`).join('')}
+        </select>
+      </div>`;
+
+      const filtered = selMonth ? done.filter(m=>(m.crDate||m.date||'').startsWith(selMonth)) : done;
+      if(filtered.length){
+        html+=filtered.map(m=>crCard(m,true)).join('');
+      } else {
+        html+=`<div class="empty" style="padding:1.5rem"><div class="empty-ico">📝</div><div class="empty-t">Aucun CR ce mois</div></div>`;
+      }
     }
 
     if(!pend.length&&!done.length) html=`<div class="empty"><div class="empty-ico">📝</div><div class="empty-t">Aucun compte rendu</div></div>`;
@@ -1345,17 +1393,19 @@ function rCR(){
 
   // ── AGENT ──
   const myM = missions().filter(m=>m.assignedTo===cu.id);
-
-  // Missions du jour à traiter
   const todayPend = myM.filter(m=>m.date===today&&m.crStatus===''&&m.status==='en cours');
-  // Missions d'autres jours non traitées (verrouillées)
   const lockedPend = myM.filter(m=>m.date!==today&&m.crStatus===''&&m.status==='en cours');
-  // CR déjà soumis (tous les jours)
-  const done = myM.filter(m=>m.crStatus!=='');
+  const done = myM.filter(m=>m.crStatus!=='')
+    .sort((a,b)=>(b.crDate||b.date||'').localeCompare(a.crDate||a.date||''));
+
+  // Mois disponibles
+  const months=[...new Set(done.map(m=>(m.crDate||m.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const selMonth=document.getElementById('cr-month-filter')?.value||'';
+  const monthNames={'01':'Janvier','02':'Février','03':'Mars','04':'Avril','05':'Mai','06':'Juin','07':'Juillet','08':'Août','09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'};
+  const fmtMonth=m=>{const[y,mo]=m.split('-');return(monthNames[mo]||mo)+' '+y;};
 
   let html='';
 
-  // Aujourd'hui — actif
   if(todayPend.length){
     html+=`<div class="sec-t" style="color:var(--gold)">⏰ À transmettre aujourd'hui (${todayPend.length})</div>`;
     html+=todayPend.map(m=>`
@@ -1372,7 +1422,6 @@ function rCR(){
     html+='<div style="height:1rem"></div>';
   }
 
-  // Autres jours — verrouillés
   if(lockedPend.length){
     html+=`<div class="sec-t" style="color:var(--ink3)">🔒 CR des autres jours (verrouillé)</div>`;
     html+=lockedPend.map(m=>`
@@ -1384,10 +1433,16 @@ function rCR(){
     html+='<div style="height:1rem"></div>';
   }
 
-  // CR soumis
   if(done.length){
-    html+=`<div class="sec-t">✅ Mes CR soumis (${done.length})</div>`;
-    html+=done.map(m=>crCard(m,false)).join('');
+    html+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem">
+      <div class="sec-t" style="margin-bottom:0">✅ Mes CR soumis (${done.length})</div>
+      <select class="fsel" id="cr-month-filter" onchange="rCR()" style="width:auto;font-size:.78rem;padding:.35rem .6rem">
+        <option value="">Tous les mois</option>
+        ${months.map(m=>`<option value="${m}" ${m===selMonth?'selected':''}>${fmtMonth(m)}</option>`).join('')}
+      </select>
+    </div>`;
+    const filtered = selMonth ? done.filter(m=>(m.crDate||m.date||'').startsWith(selMonth)) : done;
+    html+=filtered.map(m=>crCard(m,false)).join('');
   }
 
   if(!todayPend.length&&!lockedPend.length&&!done.length){
@@ -1397,7 +1452,19 @@ function rCR(){
   document.getElementById('cr-content').innerHTML=html;
 }
 
-// Carte CR soumis (réutilisable)
+// ── Relance CR individuelle ──
+function relanceCR(missionId){
+  const m=missions().find(x=>x.id===missionId);
+  if(!m)return;
+  const agent=m.assignedTo?members().find(x=>x.id===m.assignedTo):null;
+  if(!agent){toast('⚠️ Aucun agent assigné à cette mission');return}
+  sendEmail({
+    to:agent.email,
+    toName:agent.name,
+    subject:`⏰ Rappel compte rendu — ${m.title}`,
+    message:`Bonjour ${agent.firstName||agent.name},\n\nNous n'avons pas encore reçu votre compte rendu pour la mission suivante :\n\n📌 ${m.title}\n📅 ${fmtD(m.date)}\n💶 ${fmtA(m.amount)}\n\nMerci de compléter votre compte rendu dès que possible en vous connectant sur Casanova Clean Pro.\n\nCordialement,\nL'administration Casanova Clean Pro`
+  });
+}
 function crCard(m, canEdit){
   const photos=toArr(m.crPhotos);
   const checklist=m.crChecklist||{};
@@ -1838,9 +1905,10 @@ function rejectUser(id){
 function rAdmin(){
   rTplGrid();
   rPendingList();
-  // All missions table
+  // Tableau missions — uniquement missions actives (pas les terminées avec CR)
   const tbody=document.getElementById('admin-tbody');
-  tbody.innerHTML=missions().map(m=>{
+  const activeMissions=missions().filter(m=>m.crStatus===''||m.status!=='terminée');
+  tbody.innerHTML=activeMissions.map(m=>{
     const ag=m.assignedTo?members().find(x=>x.id===m.assignedTo):null;
     const visIcon=m.visibility==='cachée'?'🔒 Cachée':'👁️ Visible';
     const visBtnClass=m.visibility==='cachée'?'btn-amber':'btn-o';
@@ -1858,7 +1926,7 @@ function rAdmin(){
         <button class="btn btn-r btn-xs" onclick="delM('${m.id}')">Suppr.</button>
       </td>
     </tr>`;
-  }).join('')||`<tr><td colspan="7" style="text-align:center;color:var(--ink3);padding:1.5rem">Aucune mission</td></tr>`;
+  }).join('')||`<tr><td colspan="8" style="text-align:center;color:var(--ink3);padding:1.5rem">Aucune mission active — les missions terminées sont visibles via les fiches 🗂</td></tr>`;
   // Team table
   const mon=tod().slice(0,7);
   document.getElementById('team-tbody').innerHTML=members().filter(m=>m.role!=='admin').map(mem=>{
@@ -2118,9 +2186,15 @@ function clearTplPhotos(id){
 
 function delTpl(id){
   if(!confirm('Supprimer ce modèle ?'))return;
-  fbDB.ref('casanova/templates/'+id).set(null)
+  // Étape 1 : vider les photos (peuvent être lourdes en base64)
+  fbDB.ref('casanova/templates/'+id+'/photos').set(null)
+    .catch(()=>{})
     .then(()=>{
-      // Recharger les templates depuis Firebase pour confirmer la suppression
+      // Étape 2 : supprimer le modèle entier
+      return fbDB.ref('casanova/templates/'+id).set(null);
+    })
+    .then(()=>{
+      // Étape 3 : recharger depuis Firebase pour confirmer
       return fbDB.ref('casanova/templates').once('value');
     })
     .then(snap=>{
@@ -2271,7 +2345,7 @@ function openDup(tplId, preDate){
   // Liste des agents
   const sel=document.getElementById('d-assign');
   sel.innerHTML='<option value="">— Laisser disponible —</option>';
-  members().filter(m=>m.role!=='admin'&&m.status==='actif').forEach(m=>{
+  members().filter(m=>m.status==='actif').forEach(m=>{
     const o=document.createElement('option');
     o.value=m.id;
     o.textContent=m.name+' ('+m.email+')';
