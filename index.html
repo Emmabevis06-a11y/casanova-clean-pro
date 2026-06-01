@@ -110,6 +110,31 @@ a{color:inherit;text-decoration:none}
 .cal-dot.assigned{background:var(--gold)}
 .cal-dot.done{background:#4CAF50}
 
+/* ── Calendrier mobile : vue liste par semaine ── */
+@media(max-width:700px){
+  /* On masque la grille classique */
+  .cal-grid-desktop{display:none!important}
+  .cal-mobile{display:block}
+  .cal-week{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--paper2)}
+  .cal-week:last-child{border-bottom:none}
+  .cal-day-m{min-height:56px;border-right:1px solid var(--paper2);padding:3px 2px;cursor:pointer;transition:background .15s;position:relative}
+  .cal-day-m:last-child{border-right:none}
+  .cal-day-m:hover{background:var(--teal-l)}
+  .cal-day-m.today-m .cal-day-num-m{background:var(--teal);color:#fff;border-radius:50%}
+  .cal-day-m.other-m .cal-day-num-m{color:var(--paper3)}
+  .cal-day-num-m{font-size:.7rem;font-weight:600;width:20px;height:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 2px}
+  .cal-dot-m{width:6px;height:6px;border-radius:50%;margin:1px auto;flex-shrink:0}
+  .cal-dot-m.teal{background:var(--teal)}
+  .cal-dot-m.gold{background:var(--gold)}
+  .cal-dot-m.green{background:#4CAF50}
+  .cal-dot-m-wrap{display:flex;flex-direction:column;align-items:center;gap:1px}
+  .cal-day-m.has-missions{background:rgba(26,92,82,.04)}
+}
+@media(min-width:701px){
+  .cal-mobile{display:none}
+  .cal-grid-desktop{display:grid;grid-template-columns:repeat(7,1fr)}
+}
+
 /* ══ MISSION CARDS ══ */
 .grid-2{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem}
 .m-card{background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);box-shadow:var(--sh);overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s,transform .15s}
@@ -236,12 +261,6 @@ a{color:inherit;text-decoration:none}
   .wrap{padding:.75rem}
   .tabs{padding:0 .25rem}
   .topbar{padding:0 .75rem}
-  /* Calendrier mobile */
-  .cal-day{min-height:48px;padding:2px}
-  .cal-day-num{font-size:.65rem;width:18px;height:18px}
-  .cal-dow{padding:.3rem .1rem;font-size:.55rem;letter-spacing:0}
-  .cal-dot{font-size:.5rem;padding:1px 2px}
-  .cal-wrap{overflow-x:hidden}
   /* Tabs mobile — scroll horizontal */
   .tabs{overflow-x:auto;scrollbar-width:none}
   .tab{padding:.7rem .7rem;font-size:.72rem}
@@ -252,8 +271,6 @@ a{color:inherit;text-decoration:none}
   .modal-body{padding:1rem}
 }
 @media(max-width:380px){
-  .cal-day{min-height:40px;padding:1px}
-  .cal-dow{font-size:.5rem}
   .tab{padding:.6rem .5rem;font-size:.68rem}
 }
 </style>
@@ -366,16 +383,21 @@ a{color:inherit;text-decoration:none}
     <!-- ── CALENDRIER ── -->
     <div id="v-cal" style="display:none">
       <div class="ph"><div><div class="ph-t">Calendrier des missions</div><div class="ph-s">Vue mensuelle — cliquez sur un jour pour voir les missions</div></div>
-        <div style="display:flex;gap:.5rem">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
           <button class="btn btn-o btn-sm" onclick="calNav(-1)">← Précédent</button>
           <button class="btn btn-o btn-sm" onclick="calNav(1)">Suivant →</button>
+          <span id="cal-admin-btns" style="display:none;display:flex;gap:.5rem">
+            <button class="btn btn-t btn-sm" onclick="openNewMission()">+ Mission</button>
+            <button class="btn btn-sm" style="background:var(--sky);border-color:var(--sky);color:#fff" onclick="openMissionUnique()">⚡ Unique</button>
+          </span>
         </div>
       </div>
       <!-- Barre récap mensuelle -->
       <div id="cal-recap" style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem"></div>
       <div class="cal-wrap">
         <div class="cal-hdr"><div class="cal-month" id="cal-month"></div><div style="display:flex;gap:.4rem;font-size:.72rem;color:var(--ink3)"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--teal);display:inline-block"></span>Disponible</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--gold);display:inline-block"></span>Assignée</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#4CAF50;display:inline-block"></span>Terminée</span></div></div>
-        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-grid cal-grid-desktop" id="cal-grid"></div>
+        <div class="cal-mobile" id="cal-grid-mobile"></div>
       </div>
       <div id="cal-day-detail" style="display:none;margin-top:1.25rem">
         <div id="cal-day-label"></div>
@@ -1153,7 +1175,10 @@ function rDash(){
 function rCal(){
   const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   document.getElementById('cal-month').textContent=months[calMonth]+' '+calYear;
-  // ── Récap mensuel ──
+  // Boutons admin
+  const adminBtns=document.getElementById('cal-admin-btns');
+  if(adminBtns) adminBtns.style.display=cu.role==='admin'?'flex':'none';
+
   const monStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}`;
   const monMissions=missions().filter(m=>m.date&&m.date.startsWith(monStr));
   // Admin voit tout, agent voit ses missions
@@ -1214,6 +1239,49 @@ function rCal(){
   const total=startDow-1+daysInMonth;
   const rem=7-((total)%7);if(rem<7)for(let i=1;i<=rem;i++)html+=`<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
   grid.innerHTML=html;
+
+  // ── Vue mobile : semaines empilées avec points colorés ──
+  const mobileGrid=document.getElementById('cal-grid-mobile');
+  // En-tête jours
+  let mHtml=`<div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--paper2)">
+    ${dows.map(d=>`<div style="padding:.35rem 0;text-align:center;font-size:.6rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);font-weight:600">${d}</div>`).join('')}
+  </div>`;
+  // Construire les semaines
+  const allCells=[];
+  for(let i=startDow-1;i>0;i--) allCells.push({d:daysInPrev-i+1,other:true,dateStr:null});
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    allCells.push({d,other:false,dateStr,isToday:dateStr===todayStr});
+  }
+  const remM=7-(allCells.length%7);if(remM<7)for(let i=1;i<=remM;i++) allCells.push({d:i,other:true,dateStr:null});
+  // Grouper par semaines de 7
+  for(let w=0;w<allCells.length;w+=7){
+    const week=allCells.slice(w,w+7);
+    mHtml+=`<div class="cal-week">`;
+    week.forEach(cell=>{
+      if(cell.other){
+        mHtml+=`<div class="cal-day-m other-m"><div class="cal-day-num-m" style="color:var(--paper3)">${cell.d}</div></div>`;
+        return;
+      }
+      const allDayM=missions().filter(m=>m.date===cell.dateStr);
+      const dayM=cu.role==='admin' ? allDayM : allDayM.filter(m=>m.assignedTo===cu.id);
+      const nbDispo=dayM.filter(m=>m.status==='disponible').length;
+      const nbAssign=dayM.filter(m=>m.assignedTo&&m.status!=='terminée').length;
+      const nbDone=dayM.filter(m=>m.crStatus==='terminée').length;
+      const hasMissions=dayM.length>0;
+      mHtml+=`<div class="cal-day-m${cell.isToday?' today-m':''}${hasMissions?' has-missions':''}" onclick="calDayClick('${cell.dateStr}')">
+        <div class="cal-day-num-m">${cell.d}</div>
+        <div class="cal-dot-m-wrap">
+          ${nbDone?`<div class="cal-dot-m green" title="${nbDone} terminée${nbDone>1?'s':''}"></div>`:''}
+          ${nbAssign?`<div class="cal-dot-m gold" title="${nbAssign} assignée${nbAssign>1?'s':''}"></div>`:''}
+          ${nbDispo?`<div class="cal-dot-m teal" title="${nbDispo} disponible${nbDispo>1?'s':''}"></div>`:''}
+        </div>
+      </div>`;
+    });
+    mHtml+=`</div>`;
+  }
+  mobileGrid.innerHTML=mHtml;
+
   document.getElementById('cal-day-detail').style.display='none';
 }
 function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++}if(calMonth<0){calMonth=11;calYear--}rCal()}
@@ -1228,7 +1296,9 @@ function calDayClick(dateStr){
   const label=fmtD(dateStr);
   let headerBtn='';
   if(cu.role==='admin'){
-    headerBtn=`<button class="btn btn-t btn-sm" onclick="openDupForDate('${dateStr}')">+ Ajouter une mission ce jour</button>`;
+    headerBtn=`
+      <button class="btn btn-t btn-sm" onclick="openDupForDate('${dateStr}')">+ Mission</button>
+      <button class="btn btn-sm" style="background:var(--sky);border-color:var(--sky);color:#fff" onclick="openMissionUnique('${dateStr}')">⚡ Unique</button>`;
   }
   document.getElementById('cal-day-label').innerHTML=
     `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem">
