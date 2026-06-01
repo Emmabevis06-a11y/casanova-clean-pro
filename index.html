@@ -371,6 +371,8 @@ a{color:inherit;text-decoration:none}
           <button class="btn btn-o btn-sm" onclick="calNav(1)">Suivant →</button>
         </div>
       </div>
+      <!-- Barre récap mensuelle -->
+      <div id="cal-recap" style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem"></div>
       <div class="cal-wrap">
         <div class="cal-hdr"><div class="cal-month" id="cal-month"></div><div style="display:flex;gap:.4rem;font-size:.72rem;color:var(--ink3)"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--teal);display:inline-block"></span>Disponible</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--gold);display:inline-block"></span>Assignée</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#4CAF50;display:inline-block"></span>Terminée</span></div></div>
         <div class="cal-grid" id="cal-grid"></div>
@@ -1151,6 +1153,35 @@ function rDash(){
 function rCal(){
   const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   document.getElementById('cal-month').textContent=months[calMonth]+' '+calYear;
+  // ── Récap mensuel ──
+  const monStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const monMissions=missions().filter(m=>m.date&&m.date.startsWith(monStr));
+  // Admin voit tout, agent voit ses missions
+  const visibleMon = cu.role==='admin' ? monMissions : monMissions.filter(m=>m.assignedTo===cu.id);
+  const nbTotal=visibleMon.length;
+  const nbTerminees=visibleMon.filter(m=>m.crStatus==='terminée').length;
+  const nbEnCours=visibleMon.filter(m=>m.status==='en cours'&&m.crStatus==='').length;
+  const nbDispo=visibleMon.filter(m=>m.status==='disponible').length;
+  const totalCA=visibleMon.reduce((a,m)=>a+Number(m.amount),0);
+  const gainsTerminees=visibleMon.filter(m=>m.crStatus==='terminée').reduce((a,m)=>a+Number(m.amount),0);
+  const recap=document.getElementById('cal-recap');
+  recap.innerHTML=`
+    <div style="flex:1;min-width:140px;background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);padding:.85rem 1.1rem;box-shadow:var(--sh)">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:.3rem">Missions du mois</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:600;color:var(--ink);line-height:1">${nbTotal}</div>
+      <div style="font-size:.72rem;color:var(--ink3);margin-top:.3rem">${nbTerminees} terminée${nbTerminees>1?'s':''} · ${nbEnCours} en cours · ${nbDispo} dispo</div>
+    </div>
+    <div style="flex:1;min-width:140px;background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);padding:.85rem 1.1rem;box-shadow:var(--sh)">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:.3rem">CA total du mois</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:600;color:var(--teal);line-height:1">${fmtA(totalCA)}</div>
+      <div style="font-size:.72rem;color:var(--ink3);margin-top:.3rem">toutes missions planifiées</div>
+    </div>
+    <div style="flex:1;min-width:140px;background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);padding:.85rem 1.1rem;box-shadow:var(--sh)">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:.3rem">Gains encaissés</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:600;color:#1B5E20;line-height:1">${fmtA(gainsTerminees)}</div>
+      <div style="font-size:.72rem;color:var(--ink3);margin-top:.3rem">missions avec CR terminé</div>
+    </div>`;
+
   const grid=document.getElementById('cal-grid');
   const dows=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
   let html=dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
