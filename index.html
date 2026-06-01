@@ -1760,13 +1760,13 @@ function rTeamTable(){
   const tbody=document.getElementById('team-tbody');
   const agentRows=members().filter(m=>m.role!=='admin').map(mem=>{
     const myM=missions().filter(m=>m.assignedTo===mem.id);
-    // Missions du mois sélectionné uniquement
-    const monM=myM.filter(m=>m.date&&m.date.startsWith(mon));
-    // Gains terminées CE mois uniquement (repart à 0 chaque mois)
-    const mG=monM.filter(m=>m.crStatus==='terminée').reduce((a,m)=>a+Number(m.amount),0);
-    const nbDone=monM.filter(m=>m.crStatus==='terminée').length;
+    // Missions terminées CE mois — basé sur la date planifiée (m.date)
+    const monDone=myM.filter(m=>m.crStatus==='terminée' && (m.date||'').startsWith(mon));
+    const mG=monDone.reduce((a,m)=>a+Number(m.amount),0);
+    // Missions planifiées ce mois (toutes statuts)
+    const monPlanned=myM.filter(m=>m.date&&m.date.startsWith(mon));
     const crP=myM.filter(m=>m.crStatus===''&&m.status==='en cours').length;
-    return{name:mem.name,nbMon:monM.length,nbDone,mG,crP};
+    return{name:mem.name,nbMon:monPlanned.length,nbDone:monDone.length,mG,crP};
   });
   const totMon=agentRows.reduce((a,r)=>a+r.nbMon,0);
   const totDone=agentRows.reduce((a,r)=>a+r.nbDone,0);
