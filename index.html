@@ -407,6 +407,7 @@ a{color:inherit;text-decoration:none}
         <div style="display:flex;gap:.6rem;flex-wrap:wrap">
           <button class="btn btn-t" onclick="openTpl()">+ Nouveau modèle</button>
           <button class="btn btn-t" onclick="openNewMission()" style="background:var(--gold);border-color:var(--gold)">📋 Nouvelle mission</button>
+          <button class="btn btn-t" onclick="openMissionUnique()" style="background:var(--sky);border-color:var(--sky)">⚡ Mission unique</button>
           <button class="btn btn-o" onclick="openEmailConfig()">⚙️ Email</button>
           <button class="btn btn-g" onclick="sendRelanceEquipe()">📨 Relancer équipe</button>
           <button class="btn btn-o btn-sm" onclick="testFirebase()" title="Tester la connexion Firebase">🔧 Test Firebase</button>
@@ -414,19 +415,39 @@ a{color:inherit;text-decoration:none}
       </div>
 
       <!-- Modèles -->
-      <div class="sec-t">Modèles de fiches</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <div class="sec-t" style="margin-bottom:0">Modèles de fiches</div>
+        <div style="display:flex;align-items:center;gap:.5rem" id="tpl-pag-ctrl" style="display:none">
+          <button class="btn btn-o btn-xs" onclick="tplPage(-1)" id="tpl-prev">←</button>
+          <span id="tpl-pag-lbl" style="font-size:.72rem;color:var(--ink3)"></span>
+          <button class="btn btn-o btn-xs" onclick="tplPage(1)" id="tpl-next">→</button>
+        </div>
+      </div>
       <div class="grid-2" id="tpl-grid" style="margin-bottom:1.75rem"></div>
 
       <!-- Toutes les missions -->
-      <div class="sec-t">Toutes les missions</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <div class="sec-t" style="margin-bottom:0">Toutes les missions</div>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <button class="btn btn-o btn-xs" onclick="mPage(-1)" id="m-prev">←</button>
+          <span id="m-pag-lbl" style="font-size:.72rem;color:var(--ink3)"></span>
+          <button class="btn btn-o btn-xs" onclick="mPage(1)" id="m-next">→</button>
+        </div>
+      </div>
       <div style="background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);overflow:hidden;box-shadow:var(--sh);overflow-x:auto;margin-bottom:1.75rem">
         <table class="tbl"><thead><tr><th>Mission</th><th>Type</th><th>Date</th><th>Montant</th><th>Assignée à</th><th>Statut</th><th>Calendrier</th><th>Action</th></tr></thead><tbody id="admin-tbody"></tbody></table>
       </div>
 
       <!-- Suivi équipe -->
-      <div class="sec-t">Suivi de l'équipe</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <div class="sec-t" style="margin-bottom:0">Suivi de l'équipe</div>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <label style="font-size:.72rem;color:var(--ink3)">Mois :</label>
+          <select class="fsel" id="team-month-sel" onchange="rTeamTable()" style="width:auto;font-size:.78rem;padding:.3rem .6rem"></select>
+        </div>
+      </div>
       <div style="background:#fff;border:1px solid var(--paper3);border-radius:var(--radius);overflow:hidden;box-shadow:var(--sh);overflow-x:auto;margin-bottom:1.75rem">
-        <table class="tbl"><thead><tr><th>Membre</th><th>Missions/mois</th><th>Gains/mois</th><th>CR en attente</th><th>Total cumulé</th></tr></thead><tbody id="team-tbody"></tbody></table>
+        <table class="tbl"><thead><tr><th>Membre</th><th>Missions</th><th>Gains</th><th>CR en attente</th><th>Total cumulé</th></tr></thead><tbody id="team-tbody"></tbody></table>
       </div>
 
       <!-- Demandes en attente -->
@@ -514,7 +535,61 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
-<!-- ══ MODAL COMPTE RENDU (avec photos + questionnaire) ══ -->
+<!-- ══ MODAL MISSION UNIQUE (sans modèle, non enregistrée en base) ══ -->
+<div class="overlay" id="unique-ov">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-hdr-t">⚡ Mission unique — ponctuelle</div>
+      <button class="modal-x" onclick="closeUnique()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-bar teal" style="margin-bottom:1rem">✦ Cette mission ne sera pas enregistrée dans vos modèles. Idéale pour une prestation exceptionnelle.</div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Type de prestation</label>
+          <select class="fsel" id="uq-type"></select>
+        </div>
+        <div class="fg"><label class="fl">Tarif (€) ✱</label>
+          <input class="ffi" type="number" id="uq-amount" placeholder="ex: 95" />
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Titre de la mission ✱</label>
+        <input class="ffi" id="uq-title" placeholder="ex: Grand ménage villa avant location" />
+      </div>
+      <div class="fg"><label class="fl">Adresse du lieu</label>
+        <input class="ffi" id="uq-addr" placeholder="ex: 12 rue des Mimosas, 06000 Nice" />
+      </div>
+      <div class="fg"><label class="fl">Description / Tâches</label>
+        <textarea class="fta" id="uq-desc" placeholder="Détail des tâches à effectuer…" style="min-height:70px"></textarea>
+      </div>
+      <div class="frow">
+        <div class="fg"><label class="fl">Date ✱</label>
+          <input class="ffi" type="date" id="uq-date" />
+        </div>
+        <div class="fg"><label class="fl">Durée estimée</label>
+          <input class="ffi" id="uq-duration" placeholder="ex: 3h" />
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Assigner à un agent</label>
+        <select class="fsel" id="uq-assign"><option value="">— Laisser disponible —</option></select>
+      </div>
+      <div class="fg"><label class="fl">Visibilité</label>
+        <select class="fsel" id="uq-visibility">
+          <option value="visible">👁️ Visible — les agents voient cette mission</option>
+          <option value="cachée">🔒 Cachée — visible uniquement par l'admin</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Notes spécifiques</label>
+        <textarea class="fta" style="min-height:55px" id="uq-notes" placeholder="Accès, matériel, informations particulières…"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-o" onclick="closeUnique()">Annuler</button>
+      <button class="btn btn-t" style="background:var(--sky);border-color:var(--sky)" onclick="createUniqueMission()">⚡ Publier la mission</button>
+    </div>
+  </div>
+</div>
+
+
 <div class="overlay" id="cr-ov">
   <div class="modal modal-lg">
     <div class="modal-hdr"><div class="modal-hdr-t" id="cr-modal-t">Compte rendu de mission</div><button class="modal-x" onclick="closeCR()">✕</button></div>
@@ -806,9 +881,6 @@ function openLB(src){document.getElementById('lb-img').src=src;document.getEleme
 function closeLB(){document.getElementById('lightbox').classList.remove('on')}
 
 // ════════════════════════════════════════════════════
-//  DATA
-// ════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════
 //  FIREBASE — BASE DE DONNÉES PARTAGÉE EN TEMPS RÉEL
 // ════════════════════════════════════════════════════
 const firebaseConfig = {
@@ -825,7 +897,6 @@ const fbDB = firebase.database();
 const dbRef = fbDB.ref('casanova');
 let dbLoaded = false;
 
-// Chargement initial UNIQUEMENT — pas de listener temps réel
 function initFirebase(onReady){
   document.getElementById('loading-screen').style.display='flex';
   dbRef.once('value').then(snap=>{
@@ -853,7 +924,6 @@ function initFirebase(onReady){
   });
 }
 
-// ── Écriture directe d'un nœud Firebase ──
 function fbSet(path, value, onDone){
   fbDB.ref('casanova/'+path).set(value)
     .then(()=>{ if(onDone) onDone(); })
@@ -872,7 +942,6 @@ function fbRemove(path, onDone){
     .catch(err=>{ console.error('fbRemove error:',path,err); toast('❌ Erreur suppression : '+err.message); });
 }
 
-// ════════ DIAGNOSTIC FIREBASE ════════
 function testFirebase(){
   toast('🔧 Test Firebase en cours…');
   const testId='_test_'+Date.now();
@@ -882,12 +951,8 @@ function testFirebase(){
     .catch(err=>alert('❌ Erreur Firebase : '+err.message+'\n\nVérifiez dans Firebase Console :\nRealtime Database → Règles\nMettez : ".read":true, ".write":true\nPuis cliquez Publier.'));
 }
 
-// saveDB — ne fait plus rien (toutes ops via fbSet/fbUpdate/fbRemove)
-function saveDB(){
-  if(!dbLoaded) return;
-}
+function saveDB(){ if(!dbLoaded) return; }
 
-// Fallback localStorage
 const KEY='ccp_v3';
 function loadLocalDB(){
   try{
@@ -944,7 +1009,6 @@ function initDB(){
 
 let db={members:{},templates:{},missions:{}};
 
-// ── Helpers Firebase : objets → arrays transparents ──
 const members  = ()=>Object.values(db.members||{});
 const missions = ()=>Object.values(db.missions||{});
 const templates= ()=>Object.values(db.templates||{});
@@ -966,9 +1030,7 @@ function showAuthTab(tab){
   document.getElementById('auth-badge-lbl').textContent=isLogin?'Espace Équipe':tab==='pending'?'Inscription envoyée':'Créer un compte';
 }
 
-// ════════ AUTH ════════
 window.addEventListener('DOMContentLoaded',()=>{
-  // Démarrer Firebase puis afficher l'app
   initFirebase(()=>{
     document.getElementById('auth').style.display='flex';
   });
@@ -981,10 +1043,7 @@ function login(){
   if(!pin){alert('Entrez votre code PIN');return}
   const m=members().find(x=>x.email.toLowerCase()===email);
   if(!m){alert('Aucun compte trouvé avec cet email.\nCréez votre compte ou contactez l\'admin.');return}
-  if(m.status==='en_attente'){
-    showPendingScreen(m);
-    return;
-  }
+  if(m.status==='en_attente'){showPendingScreen(m);return;}
   if(m.status==='inactif'){alert('Votre compte est suspendu. Contactez l\'administrateur.');return}
   if(m.pin!==pin){alert('Code PIN incorrect');return}
   startSession(m);
@@ -1003,60 +1062,38 @@ function register(){
   if(pin!==pin2){alert('Les codes PIN ne correspondent pas');return}
   if(members().find(x=>x.email.toLowerCase()===email)){alert('Un compte existe déjà avec cet email');return}
   const name=[fn,ln].filter(Boolean).join(' ');
-  const newMember={
-    id:uid(),name,firstName:fn,lastName:ln,email,phone,
-    role:'agent',pin,
-    status:'en_attente', // ← en attente de validation admin
-    createdAt:new Date().toISOString(),
-    registeredAt:new Date().toLocaleString('fr-FR')
-  };
+  const newMember={id:uid(),name,firstName:fn,lastName:ln,email,phone,role:'agent',pin,status:'en_attente',createdAt:new Date().toISOString(),registeredAt:new Date().toLocaleString('fr-FR')};
   db.members[newMember.id]=newMember;
   fbSet('members/'+newMember.id, newMember);
-  // Simuler email à l'admin
   const admin=members().find(x=>x.role==='admin');
-  simulateEmail({
-    from:'noreply@casanova-clean-pro.fr',
-    to:admin?admin.email:'admin@casanova.fr',
-    subject:'🆕 Nouvelle demande d\'inscription — '+name,
-    body:`Bonjour,\n\nUne nouvelle demande d'inscription vient d'être soumise sur Casanova Clean Pro.\n\n👤 Nom : ${name}\n📧 Email : ${email}\n📱 Téléphone : ${phone||'Non renseigné'}\n🕐 Date : ${newMember.registeredAt}\n\nConnectez-vous à l'interface d'administration pour valider ou refuser ce compte :\n→ Onglet Administration > Demandes en attente\n\nCordialement,\nCasanova Clean Pro`
-  });
+  simulateEmail({from:'noreply@casanova-clean-pro.fr',to:admin?admin.email:'admin@casanova.fr',subject:'🆕 Nouvelle demande d\'inscription — '+name,body:`Bonjour,\n\nUne nouvelle demande d'inscription vient d'être soumise sur Casanova Clean Pro.\n\n👤 Nom : ${name}\n📧 Email : ${email}\n📱 Téléphone : ${phone||'Non renseigné'}\n🕐 Date : ${newMember.registeredAt}\n\nConnectez-vous à l'interface d'administration pour valider ou refuser ce compte.\n\nCordialement,\nCasanova Clean Pro`});
   showPendingScreen(newMember);
 }
 
 function showPendingScreen(m){
-  document.getElementById('pending-name-display').innerHTML=
-    `<strong>${m.name}</strong><br>${m.email}<br>Inscrit le ${m.registeredAt||m.createdAt||'—'}`;
+  document.getElementById('pending-name-display').innerHTML=`<strong>${m.name}</strong><br>${m.email}<br>Inscrit le ${m.registeredAt||m.createdAt||'—'}`;
   showAuthTab('pending');
 }
 
 function startSession(m){
   cu=m;
-  // Recharger toutes les données depuis Firebase pour avoir les dernières
   dbRef.once('value').then(snap=>{
     const data=snap.val();
-    if(data){
-      db=data;
-      db.missions=db.missions||{};
-      db.members=db.members||{};
-      db.templates=db.templates||{};
-      db.types=db.types||initDB().types;
-    }
+    if(data){db=data;db.missions=db.missions||{};db.members=db.members||{};db.templates=db.templates||{};db.types=db.types||initDB().types;}
     document.getElementById('auth').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('tb-name').textContent=m.name+(m.role==='admin'?' · Admin':'');
     document.getElementById('tb-av').textContent=ini(m.name);
     const adminTab=document.getElementById('t-admin');
     adminTab.style.display=m.role==='admin'?'flex':'none';
-    refreshBell();
-    goTab('dash');
+    refreshBell();goTab('dash');
   }).catch(()=>{
     document.getElementById('auth').style.display='none';
     document.getElementById('app').style.display='block';
     document.getElementById('tb-name').textContent=m.name+(m.role==='admin'?' · Admin':'');
     document.getElementById('tb-av').textContent=ini(m.name);
     document.getElementById('t-admin').style.display=m.role==='admin'?'flex':'none';
-    refreshBell();
-    goTab('dash');
+    refreshBell();goTab('dash');
   });
 }
 
@@ -1122,7 +1159,6 @@ function rCal(){
   const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
   const daysInPrev=new Date(calYear,calMonth,0).getDate();
   const todayStr=tod();
-  // prev month days
   for(let i=startDow-1;i>0;i--){
     const d=daysInPrev-i+1;
     html+=`<div class="cal-day other-month"><div class="cal-day-num">${d}</div></div>`;
@@ -1130,7 +1166,6 @@ function rCal(){
   for(let d=1;d<=daysInMonth;d++){
     const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const allDayM=missions().filter(m=>m.date===dateStr);
-    // Admin voit tout — Agent voit uniquement SES missions assignées
     const dayM=cu.role==='admin'
       ? allDayM
       : allDayM.filter(m=>m.assignedTo===cu.id);
@@ -1145,16 +1180,15 @@ function rCal(){
       ${dayM.length>3?`<div style="font-size:.6rem;color:var(--ink3)">+${dayM.length-3} autre${dayM.length-3>1?'s':''}</div>`:''}
     </div>`;
   }
-  // fill remaining
   const total=startDow-1+daysInMonth;
   const rem=7-((total)%7);if(rem<7)for(let i=1;i<=rem;i++)html+=`<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
   grid.innerHTML=html;
   document.getElementById('cal-day-detail').style.display='none';
 }
 function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++}if(calMonth<0){calMonth=11;calYear--}rCal()}
+
 function calDayClick(dateStr){
   const allDayM=missions().filter(m=>m.date===dateStr);
-  // Admin voit tout — Agent voit uniquement SES missions assignées
   const dayM=cu.role==='admin'
     ? allDayM
     : allDayM.filter(m=>m.assignedTo===cu.id);
@@ -1175,22 +1209,68 @@ function calDayClick(dateStr){
       `<div class="empty" style="padding:1.5rem"><div class="empty-ico">📭</div><div class="empty-t">${cu.role==='admin'?'Aucune mission ce jour':'Aucune mission assignée ce jour'}</div><div class="empty-s">${cu.role==='admin'?'Cliquez sur "+ Ajouter" pour en créer une':'Vos missions apparaîtront ici'}</div></div>`;
     return;
   }
-  document.getElementById('cal-day-list').innerHTML=dayM.map(m=>mRow(m,'cal')).join('');
+  // ✅ MODIF 1 : utilise mRowCal avec bouton suppression
+  document.getElementById('cal-day-list').innerHTML=dayM.map(m=>mRowCal(m)).join('');
 }
 
-// Attribution rapide depuis le calendrier (admin)
-function calAssign(mId){
-  openAssign(mId);
+function calAssign(mId){ openAssign(mId); }
+function calRefresh(){ rCal(); }
+function openDupForDate(dateStr){ openNewMission(dateStr); }
+
+// ════════ MISSION ROW CALENDRIER (avec suppression) ════════
+function mRowCal(m){
+  const isAdmin = cu.role === 'admin';
+  const ag = m.assignedTo ? members().find(x=>x.id===m.assignedTo) : null;
+  let act = '';
+  if(isAdmin){
+    const agName = ag ? ag.name.split(' ')[0] : 'Non assignée';
+    const agBadge = ag
+      ? '<span class="badge bt">👤 '+agName+'</span>'
+      : '<span class="badge bn">Libre</span>';
+    act = agBadge
+      +' <button class="btn btn-g btn-sm" onclick="calAssign(\''+m.id+'\')" title="Attribuer">Attribuer</button>'
+      +' <button class="btn btn-r btn-sm" onclick="delMCal(\''+m.id+'\',\''+m.date+'\')" title="Supprimer">🗑 Suppr.</button>';
+  } else {
+    const tc = missions().filter(x=>x.assignedTo===cu.id&&x.date===tod()).length;
+    if(m.assignedTo===cu.id) act = '<span class="badge bt">Acceptée ✓</span>';
+    else if(ag) act = '<span class="badge bn">👤 '+ag.name.split(' ')[0]+'</span>';
+    else if(tc>=5) act = '<span class="badge bn">Limite atteinte</span>';
+    else act = '<button class="btn btn-t btn-sm" onclick="accept(\''+m.id+'\');calRefresh()">Accepter</button>';
+  }
+  const fp = toArr(m.photos).length ? toArr(m.photos)[0] : null;
+  const iconEl = fp
+    ? '<div class="m-row-ico" style="padding:0"><img src="'+fp+'" style="width:100%;height:100%;object-fit:cover"/></div>'
+    : '<div class="m-row-ico">'+(getTypeIcon(m.type)||'✨')+'</div>';
+  return '<div class="m-row">'
+    +iconEl
+    +'<div class="m-row-info" style="cursor:pointer" onclick="openDetail(\''+m.id+'\')">'
+      +'<div class="m-row-t">'+m.title+'</div>'
+      +'<div class="m-row-s">'
+        +(m.addr?'<span>📍 '+m.addr+'</span><span>·</span>':'')
+        +'<span>📅 '+fmtD(m.date)+'</span> '
+        +sBadge(m)+crBadge(m)
+      +'</div>'
+    +'</div>'
+    +'<div class="m-row-r" style="flex-wrap:wrap;gap:.4rem">'
+      +'<div class="m-price-sm">'+fmtA(m.amount)+'</div>'
+      +'<button class="btn btn-o btn-sm" onclick="openDetail(\''+m.id+'\')" style="white-space:nowrap">🗂 Fiche</button>'
+      +act
+    +'</div>'
+  +'</div>';
 }
 
-// Rafraîchit la vue calendrier après une action agent
-function calRefresh(){
-  // retrouver la date affichée et rafraîchir
-  const label=document.getElementById('cal-day-label');
-  rCal();
-}
-function openDupForDate(dateStr){
-  openNewMission(dateStr);
+// ✅ Suppression depuis le calendrier
+function delMCal(id, dateStr){
+  if(!confirm('Supprimer cette mission ?')) return;
+  fbDB.ref('casanova/missions/'+id).set(null)
+    .then(()=>fbDB.ref('casanova/missions').once('value'))
+    .then(snap=>{
+      db.missions = snap.val() || {};
+      toast('✅ Mission supprimée.');
+      rCal();
+      setTimeout(()=>calDayClick(dateStr), 80);
+    })
+    .catch(err=>alert('❌ Erreur : '+err.message));
 }
 
 // ════════ MISSION ROW ════════
@@ -1219,23 +1299,9 @@ function mRow(m,ctx){
   }else if(ctx==='mes'||ctx==='dash'){
     if(m.crStatus===''&&m.status==='en cours') act=`<button class="btn btn-g btn-sm" onclick="openCR('${m.id}')">Faire le CR</button>`;
     else if(m.crStatus!=='') act=`<span class="badge bg">CR envoyé ✓</span>`;
-  }else if(ctx==='cal'){
-    const ag=m.assignedTo?members().find(x=>x.id===m.assignedTo):null;
-    if(isAdmin){
-      const agName=ag?ag.name.split(' ')[0]:'Non assignée';
-      const agBadge=ag?`<span class="badge bt">👤 ${agName}</span>`:`<span class="badge bn">Libre</span>`;
-      act=`${agBadge}<button class="btn btn-g btn-sm" onclick="calAssign('${m.id}')" title="Attribuer à un agent">Attribuer</button>`;
-    } else {
-      if(m.assignedTo===cu.id) act=`<span class="badge bt">Acceptée ✓</span>`;
-      else if(ag) act=`<span class="badge bn">👤 ${ag.name.split(' ')[0]}</span>`;
-      else if(tc>=5) act=`<span class="badge bn">Limite atteinte</span>`;
-      else act=`<button class="btn btn-t btn-sm" onclick="accept('${m.id}');calRefresh()">Accepter</button>`;
-    }
   }
   const fp=toArr(m.photos).length?toArr(m.photos)[0]:null;
   const iconEl=fp?`<div class="m-row-ico" style="padding:0"><img src="${fp}" style="width:100%;height:100%;object-fit:cover"/></div>`:`<div class="m-row-ico">${getTypeIcon(m.type)||'✨'}</div>`;
-
-  // Bouton "Voir la fiche" visible et cliquable sur toute la ligne
   return`<div class="m-row" style="cursor:pointer" onclick="openDetail('${m.id}')">
     ${iconEl}
     <div class="m-row-info">
@@ -1254,18 +1320,10 @@ function mRow(m,ctx){
   </div>`;
 }
 
-function getLastCR(m){
-  if(!m.crText)return null;
-  return m.crText.slice(0,30);
-}
-
 // ════════ AVAILABLE MISSIONS ════════
 function rAvail(){
   const tc=missions().filter(m=>m.assignedTo===cu.id&&m.date===tod()).length;
   document.getElementById('limit-bar').style.display=(tc>=5&&cu.role!=='admin')?'flex':'none';
-
-  // Admin voit tout sauf les terminées
-  // Agent voit uniquement les missions libres (pas encore assignées)
   const avail = cu.role==='admin'
     ? missions().filter(m=>m.status!=='terminée')
     : missions().filter(m=>m.status==='disponible');
@@ -1331,21 +1389,14 @@ function rMes(){
 // ════════ COMPTES RENDUS ════════
 function rCR(){
   const today = tod();
-  const currentMonth = today.slice(0,7); // YYYY-MM
+  const currentMonth = today.slice(0,7);
 
   if(cu.role==='admin'){
-    const pend = missions().filter(m=>m.crStatus===''&&m.status==='en cours')
-      .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-    const done = missions().filter(m=>m.crStatus!=='')
-      .sort((a,b)=>(b.crDate||b.date||'').localeCompare(a.crDate||a.date||''));
-
-    // Mois disponibles pour le filtre
+    const pend = missions().filter(m=>m.crStatus===''&&m.status==='en cours').sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    const done = missions().filter(m=>m.crStatus!=='').sort((a,b)=>(b.crDate||b.date||'').localeCompare(a.crDate||a.date||''));
     const months=[...new Set(done.map(m=>(m.crDate||m.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
     const selMonth=document.getElementById('cr-month-filter')?.value||'';
-
     let html='';
-
-    // En attente
     if(pend.length){
       html+=`<div class="sec-t" style="color:var(--gold)">⏰ En attente (${pend.length})</div>`;
       html+=pend.map(m=>{
@@ -1364,12 +1415,9 @@ function rCR(){
       }).join('');
       html+='<div style="height:1rem"></div>';
     }
-
-    // CR soumis — avec filtre par mois
     if(done.length){
       const monthNames={'01':'Janvier','02':'Février','03':'Mars','04':'Avril','05':'Mai','06':'Juin','07':'Juillet','08':'Août','09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'};
       const fmtMonth=m=>{const[y,mo]=m.split('-');return(monthNames[mo]||mo)+' '+y;};
-
       html+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem">
         <div class="sec-t" style="margin-bottom:0">✅ CR soumis (${done.length})</div>
         <select class="fsel" id="cr-month-filter" onchange="rCR()" style="width:auto;font-size:.78rem;padding:.35rem .6rem">
@@ -1377,94 +1425,50 @@ function rCR(){
           ${months.map(m=>`<option value="${m}" ${m===selMonth?'selected':''}>${fmtMonth(m)}</option>`).join('')}
         </select>
       </div>`;
-
       const filtered = selMonth ? done.filter(m=>(m.crDate||m.date||'').startsWith(selMonth)) : done;
-      if(filtered.length){
-        html+=filtered.map(m=>crCard(m,true)).join('');
-      } else {
-        html+=`<div class="empty" style="padding:1.5rem"><div class="empty-ico">📝</div><div class="empty-t">Aucun CR ce mois</div></div>`;
-      }
+      if(filtered.length){html+=filtered.map(m=>crCard(m,true)).join('');}
+      else{html+=`<div class="empty" style="padding:1.5rem"><div class="empty-ico">📝</div><div class="empty-t">Aucun CR ce mois</div></div>`;}
     }
-
     if(!pend.length&&!done.length) html=`<div class="empty"><div class="empty-ico">📝</div><div class="empty-t">Aucun compte rendu</div></div>`;
     document.getElementById('cr-content').innerHTML=html;
     return;
   }
 
-  // ── AGENT ──
   const myM = missions().filter(m=>m.assignedTo===cu.id);
   const todayPend = myM.filter(m=>m.date===today&&m.crStatus===''&&m.status==='en cours');
   const lockedPend = myM.filter(m=>m.date!==today&&m.crStatus===''&&m.status==='en cours');
-  const done = myM.filter(m=>m.crStatus!=='')
-    .sort((a,b)=>(b.crDate||b.date||'').localeCompare(a.crDate||a.date||''));
-
-  // Mois disponibles
+  const done = myM.filter(m=>m.crStatus!=='').sort((a,b)=>(b.crDate||b.date||'').localeCompare(a.crDate||a.date||''));
   const months=[...new Set(done.map(m=>(m.crDate||m.date||'').slice(0,7)).filter(Boolean))].sort().reverse();
   const selMonth=document.getElementById('cr-month-filter')?.value||'';
   const monthNames={'01':'Janvier','02':'Février','03':'Mars','04':'Avril','05':'Mai','06':'Juin','07':'Juillet','08':'Août','09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre'};
   const fmtMonth=m=>{const[y,mo]=m.split('-');return(monthNames[mo]||mo)+' '+y;};
-
   let html='';
-
   if(todayPend.length){
     html+=`<div class="sec-t" style="color:var(--gold)">⏰ À transmettre aujourd'hui (${todayPend.length})</div>`;
-    html+=todayPend.map(m=>`
-      <div class="cr-block pending">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
-          <div><div class="cr-block-t">${m.title}</div>
-          <div class="cr-block-s">${fmtD(m.date)}</div></div>
-          <div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0">
-            <span style="font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--teal)">${fmtA(m.amount)}</span>
-            <button class="btn btn-g btn-sm" onclick="openCR('${m.id}')">✍️ Faire le CR</button>
-          </div>
-        </div>
-      </div>`).join('');
+    html+=todayPend.map(m=>`<div class="cr-block pending"><div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap"><div><div class="cr-block-t">${m.title}</div><div class="cr-block-s">${fmtD(m.date)}</div></div><div style="display:flex;align-items:center;gap:.6rem;flex-shrink:0"><span style="font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--teal)">${fmtA(m.amount)}</span><button class="btn btn-g btn-sm" onclick="openCR('${m.id}')">✍️ Faire le CR</button></div></div></div>`).join('');
     html+='<div style="height:1rem"></div>';
   }
-
   if(lockedPend.length){
     html+=`<div class="sec-t" style="color:var(--ink3)">🔒 CR des autres jours (verrouillé)</div>`;
-    html+=lockedPend.map(m=>`
-      <div style="background:var(--paper2);border-radius:var(--radius);padding:.9rem 1.1rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;opacity:.6;border:1px solid var(--paper3)">
-        <div><div style="font-weight:500;font-size:.85rem">${m.title}</div>
-        <div style="font-size:.75rem;color:var(--ink3)">${fmtD(m.date)}</div></div>
-        <span style="font-size:.75rem;color:var(--ink3)">🔒 Non disponible</span>
-      </div>`).join('');
+    html+=lockedPend.map(m=>`<div style="background:var(--paper2);border-radius:var(--radius);padding:.9rem 1.1rem;margin-bottom:.5rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;opacity:.6;border:1px solid var(--paper3)"><div><div style="font-weight:500;font-size:.85rem">${m.title}</div><div style="font-size:.75rem;color:var(--ink3)">${fmtD(m.date)}</div></div><span style="font-size:.75rem;color:var(--ink3)">🔒 Non disponible</span></div>`).join('');
     html+='<div style="height:1rem"></div>';
   }
-
   if(done.length){
-    html+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem">
-      <div class="sec-t" style="margin-bottom:0">✅ Mes CR soumis (${done.length})</div>
-      <select class="fsel" id="cr-month-filter" onchange="rCR()" style="width:auto;font-size:.78rem;padding:.35rem .6rem">
-        <option value="">Tous les mois</option>
-        ${months.map(m=>`<option value="${m}" ${m===selMonth?'selected':''}>${fmtMonth(m)}</option>`).join('')}
-      </select>
-    </div>`;
+    html+=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem"><div class="sec-t" style="margin-bottom:0">✅ Mes CR soumis (${done.length})</div><select class="fsel" id="cr-month-filter" onchange="rCR()" style="width:auto;font-size:.78rem;padding:.35rem .6rem"><option value="">Tous les mois</option>${months.map(m=>`<option value="${m}" ${m===selMonth?'selected':''}>${fmtMonth(m)}</option>`).join('')}</select></div>`;
     const filtered = selMonth ? done.filter(m=>(m.crDate||m.date||'').startsWith(selMonth)) : done;
     html+=filtered.map(m=>crCard(m,false)).join('');
   }
-
-  if(!todayPend.length&&!lockedPend.length&&!done.length){
-    html=`<div class="empty"><div class="empty-ico">📝</div><div class="empty-t">Aucun compte rendu</div><div class="empty-s">Vos missions du jour apparaîtront ici</div></div>`;
-  }
-
+  if(!todayPend.length&&!lockedPend.length&&!done.length){html=`<div class="empty"><div class="empty-ico">📝</div><div class="empty-t">Aucun compte rendu</div><div class="empty-s">Vos missions du jour apparaîtront ici</div></div>`;}
   document.getElementById('cr-content').innerHTML=html;
 }
 
-// ── Relance CR individuelle ──
 function relanceCR(missionId){
-  const m=missions().find(x=>x.id===missionId);
-  if(!m)return;
+  const m=missions().find(x=>x.id===missionId);if(!m)return;
   const agent=m.assignedTo?members().find(x=>x.id===m.assignedTo):null;
   if(!agent){toast('⚠️ Aucun agent assigné à cette mission');return}
-  sendEmail({
-    to:agent.email,
-    toName:agent.name,
-    subject:`⏰ Rappel compte rendu — ${m.title}`,
-    message:`Bonjour ${agent.firstName||agent.name},\n\nNous n'avons pas encore reçu votre compte rendu pour la mission suivante :\n\n📌 ${m.title}\n📅 ${fmtD(m.date)}\n💶 ${fmtA(m.amount)}\n\nMerci de compléter votre compte rendu dès que possible en vous connectant sur Casanova Clean Pro.\n\nCordialement,\nL'administration Casanova Clean Pro`
-  });
+  sendEmail({to:agent.email,toName:agent.name,subject:`⏰ Rappel compte rendu — ${m.title}`,message:`Bonjour ${agent.firstName||agent.name},\n\nNous n'avons pas encore reçu votre compte rendu pour la mission suivante :\n\n📌 ${m.title}\n📅 ${fmtD(m.date)}\n💶 ${fmtA(m.amount)}\n\nMerci de compléter votre compte rendu dès que possible.\n\nCordialement,\nL'administration Casanova Clean Pro`});
 }
+
 function crCard(m, canEdit){
   const photos=toArr(m.crPhotos);
   const checklist=m.crChecklist||{};
@@ -1489,159 +1493,82 @@ function crCard(m, canEdit){
   </div>`;
 }
 
-// ── CR Modal ──
 function openCR(id){
   if(!id){alert('Erreur : mission non identifiée.');return}
   const m=missions().find(x=>x.id===id);
   if(!m){alert('Mission introuvable.');return}
-  // Bloquer si CR déjà soumis (agent seulement)
   const crDejaFait = !!(m.crText && String(m.crText).trim().length > 0);
-  if(cu.role!=='admin' && crDejaFait){
-    toast('Le compte rendu a déjà été envoyé et ne peut plus être modifié.');
-    return;
-  }
-  // Bloquer si la mission n'est pas du jour (agent seulement)
-  if(cu.role!=='admin' && m.date !== tod()){
-    toast('🔒 Le CR de cette mission n\'est disponible que le jour de la prestation ('+fmtD(m.date)+').');
-    return;
-  }
-  activeCRId=id;
-  crPh=[];
+  if(cu.role!=='admin' && crDejaFait){toast('Le compte rendu a déjà été envoyé et ne peut plus être modifié.');return;}
+  if(cu.role!=='admin' && m.date !== tod()){toast('🔒 Le CR de cette mission n\'est disponible que le jour de la prestation ('+fmtD(m.date)+').');return;}
+  activeCRId=id;crPh=[];
   document.getElementById('cr-modal-t').textContent='CR : '+m.title+(m.clientName?' — '+m.clientName:'');
   document.getElementById('cr-status').value=m.crStatus||'terminée';
   document.getElementById('cr-text').value=m.crText||'';
   document.getElementById('cr-custom').value=m.crCustom||'';
   if(m.crPhotos&&toArr(m.crPhotos).length) crPh=[...toArr(m.crPhotos)];
   rPhPrev('cr');
-  // Construire les checklists
   const saved=m.crChecklist||{};
   ['materiel','produits','autres'].forEach(k=>{
-    const c=document.getElementById('checklist-'+k);
-    if(!c) return;
+    const c=document.getElementById('checklist-'+k);if(!c) return;
     const checked=saved[k]||[];
-    c.innerHTML=CHECKLISTS[k].map(item=>{
-      const ck=checked.includes(item);
-      return`<label class="check-item${ck?' checked':''}" onclick="toggleCheck(this)"><input type="checkbox" ${ck?'checked':''}><span>${item}</span></label>`;
-    }).join('');
+    c.innerHTML=CHECKLISTS[k].map(item=>{const ck=checked.includes(item);return`<label class="check-item${ck?' checked':''}" onclick="toggleCheck(this)"><input type="checkbox" ${ck?'checked':''}><span>${item}</span></label>`;}).join('');
   });
   document.getElementById('cr-ov').classList.add('on');
 }
-
-function closeCR(){
-  document.getElementById('cr-ov').classList.remove('on');
-  activeCRId=null;
-  crPh=[];
-}
-
-function toggleCheck(el){
-  el.classList.toggle('checked');
-  const cb=el.querySelector('input[type=checkbox]');
-  if(cb) cb.checked=el.classList.contains('checked');
-}
+function closeCR(){document.getElementById('cr-ov').classList.remove('on');activeCRId=null;crPh=[];}
+function toggleCheck(el){el.classList.toggle('checked');const cb=el.querySelector('input[type=checkbox]');if(cb) cb.checked=el.classList.contains('checked');}
 
 function submitCR(){
   try{
     if(!activeCRId){alert('Erreur : aucun compte rendu actif. Fermez et réessayez.');return}
-    
-    // Chercher la mission localement d'abord, puis dans Firebase si besoin
     let m=missions().find(x=>x.id===activeCRId);
-    
     if(!m){
-      // Mission pas trouvée localement — recharger depuis Firebase
       fbDB.ref('casanova/missions/'+activeCRId).once('value').then(snap=>{
         const mData=snap.val();
-        if(!mData){
-          alert('Mission introuvable. Rechargez la page et réessayez.');
-          return;
-        }
+        if(!mData){alert('Mission introuvable. Rechargez la page et réessayez.');return}
         db.missions[activeCRId]=mData;
-        submitCR(); // Réessayer maintenant que la mission est chargée
+        submitCR();
       }).catch(err=>alert('Erreur Firebase : '+err.message));
       return;
     }
-
     const text=(document.getElementById('cr-text').value||'').trim();
-    if(!text){
-      alert('Veuillez rédiger un compte rendu avant d\'envoyer.');
-      document.getElementById('cr-text').focus();
-      return;
-    }
+    if(!text){alert('Veuillez rédiger un compte rendu avant d\'envoyer.');document.getElementById('cr-text').focus();return}
     const cl={};
     ['materiel','produits','autres'].forEach(k=>{
       const c=document.getElementById('checklist-'+k);
       if(!c){cl[k]=[];return}
-      cl[k]=[...c.querySelectorAll('input:checked')].map(inp=>{
-        const span=inp.nextElementSibling;
-        return span?span.textContent:'';
-      }).filter(Boolean);
+      cl[k]=[...c.querySelectorAll('input:checked')].map(inp=>{const span=inp.nextElementSibling;return span?span.textContent:'';}).filter(Boolean);
     });
-
-    const entry={
-      text,
-      status:document.getElementById('cr-status').value||'terminée',
-      custom:(document.getElementById('cr-custom').value||'').trim(),
-      photos:[...crPh],
-      checklist:cl,
-      date:tod(),
-      byId:cu.id,
-      byName:cu.name
-    };
-
+    const entry={text,status:document.getElementById('cr-status').value||'terminée',custom:(document.getElementById('cr-custom').value||'').trim(),photos:[...crPh],checklist:cl,date:tod(),byId:cu.id,byName:cu.name};
     const existingHistory=toArr(m.crHistory);
     const newHistory=[...existingHistory, entry];
-
-    m.crHistory=newHistory;
-    m.crText=text;
-    m.crStatus=entry.status;
-    m.crCustom=entry.custom;
-    m.crPhotos=entry.photos;
-    m.crDate=entry.date;
-    m.crBy=cu.id;
-    m.crChecklist=cl;
+    m.crHistory=newHistory;m.crText=text;m.crStatus=entry.status;m.crCustom=entry.custom;m.crPhotos=entry.photos;m.crDate=entry.date;m.crBy=cu.id;m.crChecklist=cl;
     if(entry.status==='terminée') m.status='terminée';
-
     db.missions[m.id]=m;
-    fbSet('missions/'+m.id, m, ()=>{
-      toast('✅ Compte rendu envoyé avec succès !');
-      closeCR();
-      rCR();
-    });
-
-  }catch(err){
-    console.error('submitCR error:',err);
-    alert('Erreur lors de l\'envoi : '+err.message);
-  }
+    fbSet('missions/'+m.id, m, ()=>{toast('✅ Compte rendu envoyé avec succès !');closeCR();rCR();});
+  }catch(err){console.error('submitCR error:',err);alert('Erreur lors de l\'envoi : '+err.message);}
 }
 
 // ════════ FICHE DÉTAIL ════════
 function openDetail(id){
   let m=missions().find(x=>x.id===id);
   if(!m){
-    // Mission pas trouvée localement — recharger depuis Firebase
     fbDB.ref('casanova/missions/'+id).once('value').then(snap=>{
       const data=snap.val();
       if(!data){toast('❌ Mission introuvable');return}
-      db.missions[id]=data;
-      openDetail(id); // Réessayer
+      db.missions[id]=data;openDetail(id);
     });
     return;
   }
   detailId=id;
   document.getElementById('det-title').textContent=m.title+(m.clientName?' — '+m.clientName:'');
-  const photos=toArr(m.photos);
-  const crPhotos=toArr(m.crPhotos);
+  const photos=toArr(m.photos);const crPhotos=toArr(m.crPhotos);
   const agent=m.assignedTo?members().find(x=>x.id===m.assignedTo):null;
   const cl=m.crChecklist||{};
   const checkedItems=[...toArr(cl.materiel),...toArr(cl.produits),...toArr(cl.autres)];
   const crHistoryArr=toArr(m.crHistory);
-
-  let html=``;
-  // Photos du logement
-  if(photos.length){
-    html+=`<div class="sec-t-dark">📷 Photos du logement</div>
-    <div class="ph-grid" style="margin-bottom:1.25rem">${photos.map(p=>`<div class="ph-thumb"><img src="${p}" onclick="openLB('${p}')" style="cursor:zoom-in"/></div>`).join('')}</div>`;
-  }
-  // Infos client
+  let html='';
+  if(photos.length){html+=`<div class="sec-t-dark">📷 Photos du logement</div><div class="ph-grid" style="margin-bottom:1.25rem">${photos.map(p=>`<div class="ph-thumb"><img src="${p}" onclick="openLB('${p}')" style="cursor:zoom-in"/></div>`).join('')}</div>`;}
   html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem 1.5rem;font-size:.83rem;margin-bottom:1.1rem">`;
   if(m.clientName)html+=`<div><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3)">Client</div><div style="font-weight:500;margin-top:.2rem">${m.clientName}</div></div>`;
   if(m.phone)html+=`<div><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3)">Téléphone</div><div style="margin-top:.2rem"><a href="tel:${m.phone}" style="color:var(--sky)">${m.phone}</a></div></div>`;
@@ -1655,48 +1582,29 @@ function openDetail(id){
   if(m.desc)html+=`<div style="margin-bottom:.75rem"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:.3rem">Tâches incluses</div><div style="background:var(--paper);border-radius:var(--radius-xs);padding:.6rem .8rem;font-size:.8rem;line-height:1.6">${m.desc}</div></div>`;
   if(m.tplNotes)html+=`<div style="margin-bottom:.75rem"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:.3rem">Notes du modèle</div><div style="background:var(--teal-l);border-radius:var(--radius-xs);padding:.6rem .8rem;font-size:.8rem;color:var(--teal)">${m.tplNotes}</div></div>`;
   if(m.clientNotes)html+=`<div style="margin-bottom:.75rem"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:.3rem">Notes client</div><div style="background:var(--gold-l);border-radius:var(--radius-xs);padding:.6rem .8rem;font-size:.8rem;color:var(--gold)">${m.clientNotes}</div></div>`;
-
-  // CR visible uniquement si :
-  // - Admin (toujours)
-  // - Agent qui a accepté cette mission (assignedTo === cu.id)
-  // Verrouillé si la mission n'est pas encore acceptée par l'agent
   const hasCR = !!(m.crText && String(m.crText).trim().length > 0);
   const isAdmin = cu.role === 'admin';
   const hasAccepted = m.assignedTo === cu.id;
   const canSeeCR = isAdmin || hasAccepted;
-
   if(canSeeCR){
     html+=`<div class="fdiv"></div>`;
-    // Construire l'historique complet
-    const history = crHistoryArr.length
-      ? [...crHistoryArr].reverse()
-      : hasCR ? [{
-          text:m.crText, status:m.crStatus, custom:m.crCustom,
-          photos:toArr(m.crPhotos), checklist:m.crChecklist||{},
-          date:m.crDate, byId:m.crBy,
-          byName:m.crBy?(members().find(x=>x.id===m.crBy)?.name||''):''
-        }] : [];
-
+    const history = crHistoryArr.length ? [...crHistoryArr].reverse() : hasCR ? [{text:m.crText,status:m.crStatus,custom:m.crCustom,photos:toArr(m.crPhotos),checklist:m.crChecklist||{},date:m.crDate,byId:m.crBy,byName:m.crBy?(members().find(x=>x.id===m.crBy)?.name||''):''}] : [];
     if(history.length){
       html+=`<div class="sec-t-dark">📝 Historique des comptes rendus (${history.length})</div>`;
       history.forEach((cr,idx)=>{
         const items=[...(cr.checklist?.materiel||[]),...(cr.checklist?.produits||[]),...(cr.checklist?.autres||[])];
         const isLatest = idx===0;
-        html+=`
-          <div style="background:${isLatest?'var(--teal-l)':'var(--paper)'};border-left:3px solid ${isLatest?'var(--teal)':'var(--paper3)'};border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:.85rem 1rem;margin-bottom:.65rem">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;flex-wrap:wrap;gap:.4rem">
-              <div style="font-size:.72rem;font-weight:600;color:${isLatest?'var(--teal)':'var(--ink3)'}">
-                ${isLatest?'✅ Dernier CR':'📋 CR précédent'}
-              </div>
-              <div style="font-size:.72rem;color:var(--ink3)">
-                ${cr.byName?'✍️ '+cr.byName+' · ':''}${cr.date?fmtD(cr.date):''}
-                <span class="badge ${cr.status==='terminée'?'bg':cr.status==='partielle'?'ba':'br'}" style="margin-left:4px">${cr.status||'terminée'}</span>
-              </div>
+        html+=`<div style="background:${isLatest?'var(--teal-l)':'var(--paper)'};border-left:3px solid ${isLatest?'var(--teal)':'var(--paper3)'};border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:.85rem 1rem;margin-bottom:.65rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;flex-wrap:wrap;gap:.4rem">
+            <div style="font-size:.72rem;font-weight:600;color:${isLatest?'var(--teal)':'var(--ink3)'}">${isLatest?'✅ Dernier CR':'📋 CR précédent'}</div>
+            <div style="font-size:.72rem;color:var(--ink3)">${cr.byName?'✍️ '+cr.byName+' · ':''}${cr.date?fmtD(cr.date):''}
+              <span class="badge ${cr.status==='terminée'?'bg':cr.status==='partielle'?'ba':'br'}" style="margin-left:4px">${cr.status||'terminée'}</span>
             </div>
-            <div style="font-size:.82rem;color:var(--ink2);line-height:1.6">${cr.text}</div>
-            ${toArr(cr.photos).length?`<div class="ph-grid" style="margin-top:.5rem">${toArr(cr.photos).map(p=>`<div class="ph-thumb"><img src="${p}" onclick="openLB('${p}')" style="cursor:zoom-in"/></div>`).join('')}</div>`:''}
-            ${items.length||cr.custom?`<div style="margin-top:.5rem;font-size:.72rem;color:var(--gold);font-weight:500">🛒 À prévoir : ${[...items,cr.custom].filter(Boolean).join(', ')}</div>`:''}
-          </div>`;
+          </div>
+          <div style="font-size:.82rem;color:var(--ink2);line-height:1.6">${cr.text}</div>
+          ${toArr(cr.photos).length?`<div class="ph-grid" style="margin-top:.5rem">${toArr(cr.photos).map(p=>`<div class="ph-thumb"><img src="${p}" onclick="openLB('${p}')" style="cursor:zoom-in"/></div>`).join('')}</div>`:''}
+          ${items.length||cr.custom?`<div style="margin-top:.5rem;font-size:.72rem;color:var(--gold);font-weight:500">🛒 À prévoir : ${[...items,cr.custom].filter(Boolean).join(', ')}</div>`:''}
+        </div>`;
       });
     } else {
       html+=`<div style="font-size:.8rem;color:var(--ink3);text-align:center;padding:.75rem;background:var(--paper);border-radius:var(--radius-xs)">Aucun compte rendu précédent pour cette mission</div>`;
@@ -1705,18 +1613,13 @@ function openDetail(id){
     html+=`<div class="fdiv"></div>`;
     html+=`<div style="font-size:.8rem;color:var(--ink3);text-align:center;padding:.85rem;background:var(--paper2);border-radius:var(--radius-xs);border:1px solid var(--paper3)">🔒 Acceptez cette mission pour voir l'historique des comptes rendus</div>`;
   }
-
   document.getElementById('det-body').innerHTML=html;
-  // Footer
   let foot='<button class="btn btn-o" onclick="closeDetail()">Fermer</button>';
-  // Bouton CR : uniquement si pas encore fait ET agent assigné OU admin
   const crDejaFait = !!(m.crText && String(m.crText).trim().length > 0);
   if(cu.role==='admin'){
-    // Admin peut toujours voir et modifier le CR
     const labelCR = crDejaFait ? '✍️ Modifier le CR' : '✍️ Faire le CR';
     foot+=`<button class="btn btn-g" onclick="closeDetail();openCR('${m.id}')">${labelCR}</button>`;
   } else if(m.assignedTo===cu.id && !crDejaFait && m.status==='en cours'){
-    // Agent : uniquement si CR pas encore fait
     foot+=`<button class="btn btn-g" onclick="closeDetail();openCR('${m.id}')">✍️ Faire le CR</button>`;
   }
   document.getElementById('det-foot').innerHTML=foot;
@@ -1724,110 +1627,36 @@ function openDetail(id){
 }
 function closeDetail(){document.getElementById('detail-ov').classList.remove('on')}
 
-// ════════ NAVIGATION GPS ════════
+// ════════ GPS ════════
 function openGPS(address){
   if(!address){toast('Aucune adresse renseignée pour cette mission.');return}
   const encoded=encodeURIComponent(address);
   const ua=navigator.userAgent||'';
   const isIOS=/iPad|iPhone|iPod/.test(ua);
   const isAndroid=/Android/.test(ua);
-
-  // Créer un mini-menu de choix d'app
   const ov=document.getElementById('email-ov');
   const title=document.getElementById('email-ov-title');
   const content=document.getElementById('email-ov-content');
   const btn=document.getElementById('email-ov-send-btn');
   btn.style.display='none';
   title.textContent='🗺️ Ouvrir l\'itinéraire';
-
   const apps=[
-    {
-      name:'Google Maps',
-      icon:'🗺️',
-      desc: isIOS||isAndroid ? 'Ouvre l\'app Google Maps' : 'Dans le navigateur',
-      url: isIOS
-        ? `comgooglemaps://?daddr=${encoded}&directionsmode=driving`
-        : isAndroid
-        ? `google.navigation:q=${encoded}`
-        : `https://www.google.com/maps/dir/?api=1&destination=${encoded}`,
-      fallback:`https://www.google.com/maps/dir/?api=1&destination=${encoded}`
-    },
-    {
-      name:'Waze',
-      icon:'🚗',
-      desc: isIOS||isAndroid ? 'Ouvre l\'app Waze' : 'Dans le navigateur',
-      url:`https://waze.com/ul?q=${encoded}&navigate=yes`,
-      fallback:`https://waze.com/ul?q=${encoded}&navigate=yes`
-    },
-    {
-      name:'Apple Plans',
-      icon:'🍎',
-      desc:'Ouvre Plans',
-      url:`http://maps.apple.com/?daddr=${encoded}&dirflg=d`,
-      fallback:`http://maps.apple.com/?daddr=${encoded}&dirflg=d`,
-      iosOnly:true
-    },
-    {
-      name:'Mappy',
-      icon:'📍',
-      desc:'Dans le navigateur',
-      url:`https://fr.mappy.com/#/${encoded}/itineraire/`,
-      fallback:`https://fr.mappy.com/#/${encoded}/itineraire/`,
-      desktopOnly:true
-    },
-    {
-      name:'OpenStreetMap',
-      icon:'🌍',
-      desc:'Dans le navigateur',
-      url:`https://www.openstreetmap.org/search?query=${encoded}`,
-      fallback:`https://www.openstreetmap.org/search?query=${encoded}`,
-      desktopOnly:true
-    }
+    {name:'Google Maps',icon:'🗺️',desc:isIOS||isAndroid?'Ouvre l\'app Google Maps':'Dans le navigateur',url:isIOS?`comgooglemaps://?daddr=${encoded}&directionsmode=driving`:isAndroid?`google.navigation:q=${encoded}`:`https://www.google.com/maps/dir/?api=1&destination=${encoded}`,fallback:`https://www.google.com/maps/dir/?api=1&destination=${encoded}`},
+    {name:'Waze',icon:'🚗',desc:isIOS||isAndroid?'Ouvre l\'app Waze':'Dans le navigateur',url:`https://waze.com/ul?q=${encoded}&navigate=yes`,fallback:`https://waze.com/ul?q=${encoded}&navigate=yes`},
+    {name:'Apple Plans',icon:'🍎',desc:'Ouvre Plans',url:`http://maps.apple.com/?daddr=${encoded}&dirflg=d`,fallback:`http://maps.apple.com/?daddr=${encoded}&dirflg=d`,iosOnly:true},
+    {name:'Mappy',icon:'📍',desc:'Dans le navigateur',url:`https://fr.mappy.com/#/${encoded}/itineraire/`,fallback:`https://fr.mappy.com/#/${encoded}/itineraire/`,desktopOnly:true},
+    {name:'OpenStreetMap',icon:'🌍',desc:'Dans le navigateur',url:`https://www.openstreetmap.org/search?query=${encoded}`,fallback:`https://www.openstreetmap.org/search?query=${encoded}`,desktopOnly:true}
   ];
-
-  content.innerHTML=`
-    <div style="font-size:.82rem;color:var(--ink2);margin-bottom:1rem">
-      📍 <strong>${address}</strong>
-    </div>
-    ${!isIOS&&!isAndroid?`<div class="info-bar teal" style="margin-bottom:1rem;font-size:.78rem">Sur ordinateur, l'itinéraire s'ouvre dans votre navigateur. Sur téléphone, l'app de navigation se lance directement.</div>`:''}
-    <div style="display:flex;flex-direction:column;gap:.5rem">
-      ${apps.filter(a=>!(a.iosOnly&&!isIOS)&&!(a.desktopOnly&&(isIOS||isAndroid))).map(a=>`
-        <button onclick="window.open('${a.url}','_blank');document.getElementById('email-ov').classList.remove('on')"
-          style="display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border-radius:var(--radius-sm);border:1.5px solid var(--paper3);background:#fff;cursor:pointer;font-family:inherit;font-size:.88rem;font-weight:500;transition:all .15s;text-align:left;width:100%"
-          onmouseover="this.style.borderColor='var(--teal)';this.style.background='var(--teal-l)'"
-          onmouseout="this.style.borderColor='var(--paper3)';this.style.background='#fff'">
-          <span style="font-size:1.4rem">${a.icon}</span>
-          <div>
-            <div>${a.name}</div>
-            <div style="font-size:.72rem;color:var(--ink3);margin-top:.1rem">${a.desc}</div>
-          </div>
-          <span style="margin-left:auto;font-size:.75rem;color:var(--ink3)">→</span>
-        </button>`).join('')}
-    </div>`;
+  content.innerHTML=`<div style="font-size:.82rem;color:var(--ink2);margin-bottom:1rem">📍 <strong>${address}</strong></div>${!isIOS&&!isAndroid?`<div class="info-bar teal" style="margin-bottom:1rem;font-size:.78rem">Sur ordinateur, l'itinéraire s'ouvre dans votre navigateur.</div>`:''}<div style="display:flex;flex-direction:column;gap:.5rem">${apps.filter(a=>!(a.iosOnly&&!isIOS)&&!(a.desktopOnly&&(isIOS||isAndroid))).map(a=>`<button onclick="window.open('${a.url}','_blank');document.getElementById('email-ov').classList.remove('on')" style="display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border-radius:var(--radius-sm);border:1.5px solid var(--paper3);background:#fff;cursor:pointer;font-family:inherit;font-size:.88rem;font-weight:500;transition:all .15s;text-align:left;width:100%" onmouseover="this.style.borderColor='var(--teal)';this.style.background='var(--teal-l)'" onmouseout="this.style.borderColor='var(--paper3)';this.style.background='#fff'"><span style="font-size:1.4rem">${a.icon}</span><div><div>${a.name}</div><div style="font-size:.72rem;color:var(--ink3);margin-top:.1rem">${a.desc}</div></div><span style="margin-left:auto;font-size:.75rem;color:var(--ink3)">→</span></button>`).join('')}</div>`;
   ov.classList.add('on');
 }
+
 let pendingMailto=null;
-
-function loadAdminEmail(){
-  return localStorage.getItem('ccp_admin_email')||(members().find(m=>m.role==='admin')?.email||'');
-}
-function saveAdminEmail(){
-  const email=(document.getElementById('admin-notif-email').value||'').trim();
-  if(email&&!/^\S+@\S+\.\S+$/.test(email)){alert('Email invalide');return}
-  if(email) localStorage.setItem('ccp_admin_email',email);
-  document.getElementById('email-config-ov').classList.remove('on');
-  toast('✅ Email admin enregistré !');
-}
-function openEmailConfig(){
-  document.getElementById('admin-notif-email').value=loadAdminEmail();
-  document.getElementById('email-config-ov').classList.add('on');
-}
+function loadAdminEmail(){return localStorage.getItem('ccp_admin_email')||(members().find(m=>m.role==='admin')?.email||'');}
+function saveAdminEmail(){const email=(document.getElementById('admin-notif-email').value||'').trim();if(email&&!/^\S+@\S+\.\S+$/.test(email)){alert('Email invalide');return}if(email) localStorage.setItem('ccp_admin_email',email);document.getElementById('email-config-ov').classList.remove('on');toast('✅ Email admin enregistré !');}
+function openEmailConfig(){document.getElementById('admin-notif-email').value=loadAdminEmail();document.getElementById('email-config-ov').classList.add('on');}
 function emailConfigured(){return true;}
-
-function openMailto(){
-  if(pendingMailto) window.location.href=pendingMailto;
-  document.getElementById('email-ov').classList.remove('on');
-}
+function openMailto(){if(pendingMailto) window.location.href=pendingMailto;document.getElementById('email-ov').classList.remove('on');}
 
 function sendEmail({to,toName,subject,message}){
   const ov=document.getElementById('email-ov');
@@ -1837,16 +1666,7 @@ function sendEmail({to,toName,subject,message}){
   pendingMailto='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(message);
   title.textContent='📧 Email prêt à envoyer';
   btn.style.display='inline-flex';
-  content.innerHTML=`
-    <div class="info-bar teal" style="margin-bottom:.85rem">
-      Cliquez <strong>"Ouvrir dans ma messagerie"</strong> pour envoyer depuis votre boîte habituelle (Outlook, Gmail…).
-    </div>
-    <div style="background:var(--paper);border-radius:var(--radius-sm);padding:1rem;font-size:.82rem;border:1px solid var(--paper3)">
-      <div style="display:flex;gap:.5rem;margin-bottom:.4rem"><span style="color:var(--ink3);width:55px;flex-shrink:0">À :</span><strong>${to}</strong></div>
-      <div style="display:flex;gap:.5rem;margin-bottom:.75rem"><span style="color:var(--ink3);width:55px;flex-shrink:0">Objet :</span><strong style="color:var(--teal)">${subject}</strong></div>
-      <div style="height:1px;background:var(--paper3);margin-bottom:.75rem"></div>
-      <div style="white-space:pre-wrap;line-height:1.7;font-size:.8rem">${message}</div>
-    </div>`;
+  content.innerHTML=`<div class="info-bar teal" style="margin-bottom:.85rem">Cliquez <strong>"Ouvrir dans ma messagerie"</strong> pour envoyer depuis votre boîte habituelle.</div><div style="background:var(--paper);border-radius:var(--radius-sm);padding:1rem;font-size:.82rem;border:1px solid var(--paper3)"><div style="display:flex;gap:.5rem;margin-bottom:.4rem"><span style="color:var(--ink3);width:55px;flex-shrink:0">À :</span><strong>${to}</strong></div><div style="display:flex;gap:.5rem;margin-bottom:.75rem"><span style="color:var(--ink3);width:55px;flex-shrink:0">Objet :</span><strong style="color:var(--teal)">${subject}</strong></div><div style="height:1px;background:var(--paper3);margin-bottom:.75rem"></div><div style="white-space:pre-wrap;line-height:1.7;font-size:.8rem">${message}</div></div>`;
   ov.classList.add('on');
 }
 
@@ -1861,36 +1681,14 @@ function rPendingList(){
   const badge=document.getElementById('pending-badge');
   const list=document.getElementById('pending-list');
   if(!badge||!list)return;
-  if(!pending.length){
-    badge.style.display='none';
-    list.innerHTML=`<div style="background:var(--paper);border-radius:var(--radius-sm);padding:.85rem 1.1rem;font-size:.82rem;color:var(--ink3);text-align:center">✅ Aucune demande en attente</div>`;
-    return;
-  }
-  badge.style.display='inline-flex';
-  badge.textContent=pending.length;
-  list.innerHTML=pending.map(m=>`
-    <div style="background:#fff;border:1.5px solid #F5A623;border-radius:var(--radius);padding:1rem 1.1rem;margin-bottom:.65rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;box-shadow:var(--sh)">
-      <div style="width:38px;height:38px;border-radius:50%;background:var(--gold-l);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--gold);flex-shrink:0">${ini(m.name)}</div>
-      <div style="flex:1;min-width:180px">
-        <div style="font-weight:500;font-size:.88rem">${m.name}</div>
-        <div style="font-size:.75rem;color:var(--ink3);margin-top:.2rem">
-          <a href="mailto:${m.email}" style="color:var(--sky)">${m.email}</a>
-          ${m.phone?' · '+m.phone:''}
-          ${m.registeredAt?' · Inscrit le '+m.registeredAt:''}
-        </div>
-      </div>
-      <div style="display:flex;gap:.5rem;flex-shrink:0">
-        <button class="btn btn-t btn-sm" onclick="validateUser('${m.id}')">✅ Valider</button>
-        <button class="btn btn-r btn-sm" onclick="rejectUser('${m.id}')">❌ Refuser</button>
-      </div>
-    </div>`).join('');
+  if(!pending.length){badge.style.display='none';list.innerHTML=`<div style="background:var(--paper);border-radius:var(--radius-sm);padding:.85rem 1.1rem;font-size:.82rem;color:var(--ink3);text-align:center">✅ Aucune demande en attente</div>`;return}
+  badge.style.display='inline-flex';badge.textContent=pending.length;
+  list.innerHTML=pending.map(m=>`<div style="background:#fff;border:1.5px solid #F5A623;border-radius:var(--radius);padding:1rem 1.1rem;margin-bottom:.65rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;box-shadow:var(--sh)"><div style="width:38px;height:38px;border-radius:50%;background:var(--gold-l);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--gold);flex-shrink:0">${ini(m.name)}</div><div style="flex:1;min-width:180px"><div style="font-weight:500;font-size:.88rem">${m.name}</div><div style="font-size:.75rem;color:var(--ink3);margin-top:.2rem"><a href="mailto:${m.email}" style="color:var(--sky)">${m.email}</a>${m.phone?' · '+m.phone:''}${m.registeredAt?' · Inscrit le '+m.registeredAt:''}</div></div><div style="display:flex;gap:.5rem;flex-shrink:0"><button class="btn btn-t btn-sm" onclick="validateUser('${m.id}')">✅ Valider</button><button class="btn btn-r btn-sm" onclick="rejectUser('${m.id}')">❌ Refuser</button></div></div>`).join('');
 }
 
 function validateUser(id){
-  const m=members().find(x=>x.id===id);
-  if(!m)return;
-  m.status='actif';
-  db.members[id]=m;
+  const m=members().find(x=>x.id===id);if(!m)return;
+  m.status='actif';db.members[id]=m;
   fbUpdate('members/'+id,{status:'actif'},()=>{rPendingList();rUsersTable();refreshBell();toast('✅ Compte validé : '+m.name);});
   simulateEmail({from:'noreply@casanova-clean-pro.fr',to:m.email,subject:'✅ Votre compte Casanova Clean Pro est activé !',body:`Bonjour ${m.firstName||m.name},\n\nVotre compte a été validé. Vous pouvez maintenant vous connecter.\n\nCordialement,\nCasanova Clean Pro`});
 }
@@ -1902,201 +1700,139 @@ function rejectUser(id){
   delete db.members[id];
   fbRemove('members/'+id,()=>{rPendingList();rUsersTable();refreshBell();toast('Demande refusée : '+m.name);});
 }
+
+// ════════ PAGINATION état ════════
+let adminMPage=0, adminTplPage=0;
+const ADMIN_PAGE_SIZE=8, TPL_PAGE_SIZE=8;
+
 function rAdmin(){
-  rTplGrid();
-  rPendingList();
-  // Tableau missions — uniquement missions actives (pas les terminées avec CR)
+  rTplGrid();rPendingList();
+  rMissionsTable();
+  rTeamMonthSelect();
+  rTeamTable();
+  rUsersTable();
+}
+
+// ── Tableau missions paginé ──
+function rMissionsTable(){
+  const activeMissions=missions().filter(m=>m.crStatus===''||m.status!=='terminée')
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const total=activeMissions.length;
+  const pages=Math.max(1,Math.ceil(total/ADMIN_PAGE_SIZE));
+  if(adminMPage>=pages) adminMPage=pages-1;
+  if(adminMPage<0) adminMPage=0;
+  const slice=activeMissions.slice(adminMPage*ADMIN_PAGE_SIZE,(adminMPage+1)*ADMIN_PAGE_SIZE);
   const tbody=document.getElementById('admin-tbody');
-  const activeMissions=missions().filter(m=>m.crStatus===''||m.status!=='terminée');
-  tbody.innerHTML=activeMissions.map(m=>{
+  tbody.innerHTML=slice.map(m=>{
     const ag=m.assignedTo?members().find(x=>x.id===m.assignedTo):null;
     const visIcon=m.visibility==='cachée'?'🔒 Cachée':'👁️ Visible';
     const visBtnClass=m.visibility==='cachée'?'btn-amber':'btn-o';
-    return`<tr>
-      <td><strong>${m.title}</strong>${m.clientName?`<br><span style="color:var(--ink3);font-size:.75rem">${m.clientName}</span>`:''}</td>
-      <td>${getTypeIcon(m.type)||'✨'} ${getTypeName(m.type)}</td>
-      <td>${fmtD(m.date)}</td>
-      <td style="font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--teal)">${fmtA(m.amount)}</td>
-      <td>${ag?ag.name:`<span style="color:var(--ink3)">Non assignée</span>`}
-        <button class="btn btn-o btn-xs" style="margin-left:4px" onclick="openAssign('${m.id}')">Attribuer</button></td>
-      <td>${sBadge(m)}</td>
-      <td><button class="btn ${visBtnClass} btn-xs" onclick="toggleVisibility('${m.id}')" title="Changer la visibilité">${visIcon}</button></td>
-      <td style="display:flex;gap:4px">
-        <button class="ico-btn" onclick="openDetail('${m.id}')">🗂</button>
-        <button class="btn btn-r btn-xs" onclick="delM('${m.id}')">Suppr.</button>
-      </td>
-    </tr>`;
-  }).join('')||`<tr><td colspan="8" style="text-align:center;color:var(--ink3);padding:1.5rem">Aucune mission active — les missions terminées sont visibles via les fiches 🗂</td></tr>`;
-  // Team table
-  const mon=tod().slice(0,7);
-  document.getElementById('team-tbody').innerHTML=members().filter(m=>m.role!=='admin').map(mem=>{
+    const uniqueTag=m.isUnique?'<span class="badge bs" style="font-size:.58rem;margin-left:3px">⚡</span>':'';
+    return`<tr><td><strong>${m.title}</strong>${uniqueTag}${m.clientName?`<br><span style="color:var(--ink3);font-size:.75rem">${m.clientName}</span>`:''}</td><td>${getTypeIcon(m.type)||'✨'} ${getTypeName(m.type)}</td><td>${fmtD(m.date)}</td><td style="font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--teal)">${fmtA(m.amount)}</td><td>${ag?ag.name:`<span style="color:var(--ink3)">Non assignée</span>`}<button class="btn btn-o btn-xs" style="margin-left:4px" onclick="openAssign('${m.id}')">Attribuer</button></td><td>${sBadge(m)}</td><td><button class="btn ${visBtnClass} btn-xs" onclick="toggleVisibility('${m.id}')" title="Changer la visibilité">${visIcon}</button></td><td style="display:flex;gap:4px"><button class="ico-btn" onclick="openDetail('${m.id}')">🗂</button><button class="btn btn-r btn-xs" onclick="delM('${m.id}')">Suppr.</button></td></tr>`;
+  }).join('')||`<tr><td colspan="8" style="text-align:center;color:var(--ink3);padding:1.5rem">Aucune mission active</td></tr>`;
+  // pagination label
+  document.getElementById('m-pag-lbl').textContent=total>0?`Page ${adminMPage+1}/${pages} · ${total} mission${total>1?'s':'`'}`:  '';
+  document.getElementById('m-prev').disabled=adminMPage===0;
+  document.getElementById('m-next').disabled=adminMPage>=pages-1;
+}
+function mPage(dir){adminMPage+=dir;rMissionsTable();}
+
+// ── Suivi équipe : sélecteur de mois ──
+function rTeamMonthSelect(){
+  const sel=document.getElementById('team-month-sel');
+  if(!sel) return;
+  // Générer les 12 derniers mois
+  const months=[];
+  const now=new Date();
+  for(let i=0;i<12;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const val=d.toISOString().slice(0,7);
+    const names=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    months.push({val,lbl:names[d.getMonth()]+' '+d.getFullYear()});
+  }
+  const cur=sel.value||tod().slice(0,7);
+  sel.innerHTML=months.map(m=>`<option value="${m.val}"${m.val===cur?' selected':''}>${m.lbl}</option>`).join('');
+}
+
+function rTeamTable(){
+  const sel=document.getElementById('team-month-sel');
+  const mon=sel?sel.value:tod().slice(0,7);
+  const tbody=document.getElementById('team-tbody');
+  const agentRows=members().filter(m=>m.role!=='admin').map(mem=>{
     const myM=missions().filter(m=>m.assignedTo===mem.id);
     const monM=myM.filter(m=>m.date&&m.date.startsWith(mon));
     const mG=monM.filter(m=>m.crStatus==='terminée').reduce((a,m)=>a+Number(m.amount),0);
     const tG=myM.filter(m=>m.crStatus==='terminée').reduce((a,m)=>a+Number(m.amount),0);
     const crP=myM.filter(m=>m.crStatus===''&&m.status==='en cours').length;
-    return`<tr>
-      <td><strong>${mem.name}</strong></td>
-      <td>${monM.length}</td>
-      <td style="font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--teal)">${fmtA(mG)}</td>
-      <td>${crP?`<span class="badge ba">${crP}</span>`:`<span class="badge bg">0</span>`}</td>
-      <td style="font-family:'Cormorant Garamond',serif;font-weight:500">${fmtA(tG)}</td>
-    </tr>`;
-  }).join('');
-  // Users table
-  rUsersTable();
+    return{name:mem.name,monM:monM.length,mG,tG,crP};
+  });
+  // Total ligne
+  const totMon=agentRows.reduce((a,r)=>a+r.monM,0);
+  const totMG=agentRows.reduce((a,r)=>a+r.mG,0);
+  const totTG=agentRows.reduce((a,r)=>a+r.tG,0);
+  const totCR=agentRows.reduce((a,r)=>a+r.crP,0);
+  tbody.innerHTML=agentRows.map(r=>`<tr>
+    <td><strong>${r.name}</strong></td>
+    <td>${r.monM}</td>
+    <td style="font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--teal)">${fmtA(r.mG)}</td>
+    <td>${r.crP?`<span class="badge ba">${r.crP}</span>`:`<span class="badge bg">0</span>`}</td>
+    <td style="font-family:'Cormorant Garamond',serif;font-weight:500">${fmtA(r.tG)}</td>
+  </tr>`).join('')
+  +`<tr style="background:var(--paper);border-top:2px solid var(--paper3)">
+    <td style="font-weight:600;font-size:.78rem;color:var(--ink2)">TOTAL</td>
+    <td style="font-weight:600">${totMon}</td>
+    <td style="font-family:'Cormorant Garamond',serif;font-weight:700;color:var(--teal);font-size:1rem">${fmtA(totMG)}</td>
+    <td>${totCR?`<span class="badge ba">${totCR}</span>`:`<span class="badge bg">0</span>`}</td>
+    <td style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:.95rem">${fmtA(totTG)}</td>
+  </tr>`;
 }
 
+
+
 function rUsersTable(){
-  const tbody=document.getElementById('users-tbody');
-  if(!tbody)return;
+  const tbody=document.getElementById('users-tbody');if(!tbody)return;
   tbody.innerHTML=members().map(m=>{
     const isAdmin=m.role==='admin';
     const statusBadge=m.status==='actif'?'<span class="badge bg">Actif</span>':m.status==='en_attente'?'<span class="badge ba">En attente</span>':'<span class="badge br">Suspendu</span>';
     const roleBadge=isAdmin?'<span class="badge bt">Admin</span>':'<span class="badge bn">Agent</span>';
-    return`<tr>
-      <td><div style="display:flex;align-items:center;gap:.6rem"><div style="width:30px;height:30px;border-radius:50%;background:${isAdmin?'var(--teal)':'var(--paper2)'};display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:600;color:${isAdmin?'#fff':'var(--ink2)'};flex-shrink:0">${ini(m.name)}</div><strong>${m.name}</strong></div></td>
-      <td><a href="mailto:${m.email}" style="color:var(--sky)">${m.email}</a></td>
-      <td>${m.phone||'<span style="color:var(--ink3)">—</span>'}</td>
-      <td>${roleBadge}</td>
-      <td>${statusBadge}</td>
-      <td><div style="display:flex;gap:4px">
-        <button class="btn btn-o btn-xs" onclick="editUser('${m.id}')">✏️ Modifier</button>
-        ${m.id!=='admin'?`<button class="btn btn-r btn-xs" onclick="toggleUserStatus('${m.id}')">${m.status==='actif'?'Suspendre':'Réactiver'}</button>`:''}
-        ${m.id!=='admin'?`<button class="btn btn-r btn-xs" onclick="delUser('${m.id}')">🗑</button>`:''}
-      </div></td>
-    </tr>`;
+    return`<tr><td><div style="display:flex;align-items:center;gap:.6rem"><div style="width:30px;height:30px;border-radius:50%;background:${isAdmin?'var(--teal)':'var(--paper2)'};display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:600;color:${isAdmin?'#fff':'var(--ink2)'};flex-shrink:0">${ini(m.name)}</div><strong>${m.name}</strong></div></td><td><a href="mailto:${m.email}" style="color:var(--sky)">${m.email}</a></td><td>${m.phone||'<span style="color:var(--ink3)">—</span>'}</td><td>${roleBadge}</td><td>${statusBadge}</td><td><div style="display:flex;gap:4px"><button class="btn btn-o btn-xs" onclick="editUser('${m.id}')">✏️ Modifier</button>${m.id!=='admin'?`<button class="btn btn-r btn-xs" onclick="toggleUserStatus('${m.id}')">${m.status==='actif'?'Suspendre':'Réactiver'}</button>`:''} ${m.id!=='admin'?`<button class="btn btn-r btn-xs" onclick="delUser('${m.id}')">🗑</button>`:''}</div></td></tr>`;
   }).join('');
 }
 
-// ── User CRUD ──
 let editUserId=null;
-function openAddUser(){
-  editUserId=null;
-  document.getElementById('user-modal-t').textContent='Ajouter un utilisateur';
-  ['u-fn','u-ln','u-email','u-phone','u-pin'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('u-role').value='agent';
-  document.getElementById('u-status').value='actif';
-  document.getElementById('u-edit-note').style.display='none';
-  document.getElementById('user-ov').classList.add('on');
-}
-function editUser(id){
-  editUserId=id;
-  const m=members().find(x=>x.id===id);
-  document.getElementById('user-modal-t').textContent='Modifier : '+m.name;
-  document.getElementById('u-fn').value=m.firstName||m.name.split(' ')[0]||'';
-  document.getElementById('u-ln').value=m.lastName||m.name.split(' ').slice(1).join(' ')||'';
-  document.getElementById('u-email').value=m.email||'';
-  document.getElementById('u-phone').value=m.phone||'';
-  document.getElementById('u-role').value=m.role||'agent';
-  document.getElementById('u-status').value=m.status||'actif';
-  document.getElementById('u-pin').value='';
-  document.getElementById('u-edit-note').style.display='block';
-  document.getElementById('user-ov').classList.add('on');
-}
-function closeAddUser(){document.getElementById('user-ov').classList.remove('on');editUserId=null}
+function openAddUser(){editUserId=null;document.getElementById('user-modal-t').textContent='Ajouter un utilisateur';['u-fn','u-ln','u-email','u-phone','u-pin'].forEach(id=>document.getElementById(id).value='');document.getElementById('u-role').value='agent';document.getElementById('u-status').value='actif';document.getElementById('u-edit-note').style.display='none';document.getElementById('user-ov').classList.add('on');}
+function editUser(id){editUserId=id;const m=members().find(x=>x.id===id);document.getElementById('user-modal-t').textContent='Modifier : '+m.name;document.getElementById('u-fn').value=m.firstName||m.name.split(' ')[0]||'';document.getElementById('u-ln').value=m.lastName||m.name.split(' ').slice(1).join(' ')||'';document.getElementById('u-email').value=m.email||'';document.getElementById('u-phone').value=m.phone||'';document.getElementById('u-role').value=m.role||'agent';document.getElementById('u-status').value=m.status||'actif';document.getElementById('u-pin').value='';document.getElementById('u-edit-note').style.display='block';document.getElementById('user-ov').classList.add('on');}
+function closeAddUser(){document.getElementById('user-ov').classList.remove('on');editUserId=null;}
 function saveUser(){
-  const fn=(document.getElementById('u-fn').value||'').trim();
-  const ln=(document.getElementById('u-ln').value||'').trim();
-  const email=(document.getElementById('u-email').value||'').trim().toLowerCase();
-  const phone=(document.getElementById('u-phone').value||'').trim();
-  const role=document.getElementById('u-role').value;
-  const status=document.getElementById('u-status').value;
-  const pin=document.getElementById('u-pin').value||'';
-  if(!fn||!email){alert('Prénom et email sont obligatoires');return}
-  if(!/^\S+@\S+\.\S+$/.test(email)){alert('Email invalide');return}
-  if(pin&&(pin.length!==4||!/^\d{4}$/.test(pin))){alert('Le PIN doit être 4 chiffres');return}
-  // Check email unique
-  const dup=members().find(x=>x.email.toLowerCase()===email&&x.id!==editUserId);
-  if(dup){alert('Cet email est déjà utilisé par un autre compte');return}
+  const fn=(document.getElementById('u-fn').value||'').trim();const ln=(document.getElementById('u-ln').value||'').trim();const email=(document.getElementById('u-email').value||'').trim().toLowerCase();const phone=(document.getElementById('u-phone').value||'').trim();const role=document.getElementById('u-role').value;const status=document.getElementById('u-status').value;const pin=document.getElementById('u-pin').value||'';
+  if(!fn||!email){alert('Prénom et email sont obligatoires');return}if(!/^\S+@\S+\.\S+$/.test(email)){alert('Email invalide');return}if(pin&&(pin.length!==4||!/^\d{4}$/.test(pin))){alert('Le PIN doit être 4 chiffres');return}
+  const dup=members().find(x=>x.email.toLowerCase()===email&&x.id!==editUserId);if(dup){alert('Cet email est déjà utilisé par un autre compte');return}
   const name=[fn,ln].filter(Boolean).join(' ');
-  if(editUserId){
-    const m=members().find(x=>x.id===editUserId);
-    m.firstName=fn;m.lastName=ln;m.name=name;m.email=email;m.phone=phone;m.role=role;m.status=status;
-    if(pin)m.pin=pin;
-    db.members[editUserId]=m;
-    fbSet('members/'+editUserId, m, ()=>{ toast('✅ Utilisateur modifié : '+name); closeAddUser(); rUsersTable(); });
-  }else{
-    if(!pin){alert('Le PIN est obligatoire pour un nouveau compte');return}
-    const nu={id:uid(),name,firstName:fn,lastName:ln,email,phone,role,pin,status,createdAt:tod()};
-    db.members[nu.id]=nu;
-    fbSet('members/'+nu.id, nu, ()=>{ toast('✅ Utilisateur créé : '+name); closeAddUser(); rUsersTable(); });
-  }
+  if(editUserId){const m=members().find(x=>x.id===editUserId);m.firstName=fn;m.lastName=ln;m.name=name;m.email=email;m.phone=phone;m.role=role;m.status=status;if(pin)m.pin=pin;db.members[editUserId]=m;fbSet('members/'+editUserId, m, ()=>{toast('✅ Utilisateur modifié : '+name);closeAddUser();rUsersTable();});}
+  else{if(!pin){alert('Le PIN est obligatoire pour un nouveau compte');return}const nu={id:uid(),name,firstName:fn,lastName:ln,email,phone,role,pin,status,createdAt:tod()};db.members[nu.id]=nu;fbSet('members/'+nu.id, nu, ()=>{toast('✅ Utilisateur créé : '+name);closeAddUser();rUsersTable();});}
 }
-function toggleUserStatus(id){
-  const m=members().find(x=>x.id===id);
-  if(m.status==='en_attente'){alert('Ce compte est en attente de validation. Utilisez les boutons Valider / Refuser.');return}
-  m.status=m.status==='actif'?'inactif':'actif';
-  db.members[id]=m;
-  fbUpdate('members/'+id, {status:m.status}, ()=>{
-    rUsersTable();refreshBell();
-    toast((m.status==='actif'?'✅ Compte réactivé':'🚫 Compte suspendu')+' : '+m.name);
-  });
-}
-function delUser(id){
-  const m=members().find(x=>x.id===id);
-  if(!confirm('Supprimer le compte de '+m.name+' ?\nSes missions assignées seront libérées.'))return;
-  missions().filter(x=>x.assignedTo===id).forEach(x=>{
-    x.assignedTo=null;x.status='disponible';
-    db.missions[x.id]=x;
-    fbUpdate('missions/'+x.id,{assignedTo:null,status:'disponible'});
-  });
-  delete db.members[id];
-  fbRemove('members/'+id, ()=>{ rUsersTable(); toast('Compte supprimé : '+m.name); });
-}
+function toggleUserStatus(id){const m=members().find(x=>x.id===id);if(m.status==='en_attente'){alert('Ce compte est en attente de validation.');return}m.status=m.status==='actif'?'inactif':'actif';db.members[id]=m;fbUpdate('members/'+id,{status:m.status},()=>{rUsersTable();refreshBell();toast((m.status==='actif'?'✅ Compte réactivé':'🚫 Compte suspendu')+' : '+m.name);});}
+function delUser(id){const m=members().find(x=>x.id===id);if(!confirm('Supprimer le compte de '+m.name+' ?'))return;missions().filter(x=>x.assignedTo===id).forEach(x=>{x.assignedTo=null;x.status='disponible';db.missions[x.id]=x;fbUpdate('missions/'+x.id,{assignedTo:null,status:'disponible'});});delete db.members[id];fbRemove('members/'+id,()=>{rUsersTable();toast('Compte supprimé : '+m.name);});}
 
 let assignMissionId = null;
-
 function openAssign(mId){
-  const m=missions().find(x=>x.id===mId);
-  if(!m)return;
+  const m=missions().find(x=>x.id===mId);if(!m)return;
   assignMissionId=mId;
   document.getElementById('assign-mission-info').textContent=m.title+' — '+fmtD(m.date);
-  // Remplir la liste des agents
   const sel=document.getElementById('assign-agent');
   sel.innerHTML='<option value="libre">🔓 Remettre disponible (libérer)</option>';
-  members().filter(a=>a.status==='actif').forEach(a=>{
-    const o=document.createElement('option');
-    o.value=a.id;
-    o.textContent='👤 '+a.name+(m.assignedTo===a.id?' (actuel)':'');
-    if(m.assignedTo===a.id) o.selected=true;
-    sel.appendChild(o);
-  });
+  members().filter(a=>a.status==='actif').forEach(a=>{const o=document.createElement('option');o.value=a.id;o.textContent='👤 '+a.name+(m.assignedTo===a.id?' (actuel)':'');if(m.assignedTo===a.id) o.selected=true;sel.appendChild(o);});
   document.getElementById('assign-ov').classList.add('on');
 }
-
-function closeAssign(){
-  document.getElementById('assign-ov').classList.remove('on');
-  assignMissionId=null;
-}
-
+function closeAssign(){document.getElementById('assign-ov').classList.remove('on');assignMissionId=null;}
 function confirmAssign(){
   if(!assignMissionId)return;
-  const m=missions().find(x=>x.id===assignMissionId);
-  if(!m)return;
+  const m=missions().find(x=>x.id===assignMissionId);if(!m)return;
   const val=document.getElementById('assign-agent').value;
-  if(val==='libre'){
-    m.assignedTo=null;
-    m.status='disponible';
-    toast('✅ Mission remise disponible : '+m.title);
-    // Notifier tous les agents
-    notifyMissionPubliee(m);
-  } else {
-    const agent=members().find(x=>x.id===val);
-    if(!agent)return;
-    m.assignedTo=agent.id;
-    m.status='en cours';
-    toast('✅ Mission attribuée à '+agent.name);
-    // Notifier l'agent assigné
-    sendEmail({
-      to:agent.email,
-      toName:agent.name,
-      subject:`✅ Mission assignée — ${m.title}`,
-      message:`Bonjour ${agent.firstName||agent.name},\n\nL'administrateur vous a assigné une mission :\n\n📌 ${m.title}\n📅 ${fmtD(m.date)}\n💶 ${fmtA(m.amount)}\n${m.tplNotes?'📝 Notes : '+m.tplNotes:''}\n\nConnectez-vous sur Casanova Clean Pro pour voir les détails.\n\nCordialement,\nCasanova Clean Pro`
-    });
-  }
+  if(val==='libre'){m.assignedTo=null;m.status='disponible';toast('✅ Mission remise disponible : '+m.title);notifyMissionPubliee(m);}
+  else{const agent=members().find(x=>x.id===val);if(!agent)return;m.assignedTo=agent.id;m.status='en cours';toast('✅ Mission attribuée à '+agent.name);sendEmail({to:agent.email,toName:agent.name,subject:`✅ Mission assignée — ${m.title}`,message:`Bonjour ${agent.firstName||agent.name},\n\nL'administrateur vous a assigné une mission :\n\n📌 ${m.title}\n📅 ${fmtD(m.date)}\n💶 ${fmtA(m.amount)}\n\nConnectez-vous sur Casanova Clean Pro pour voir les détails.\n\nCordialement,\nCasanova Clean Pro`});}
   db.missions[m.id]=m;
-  fbUpdate('missions/'+m.id, {assignedTo:m.assignedTo||null, status:m.status}, ()=>{
+  fbUpdate('missions/'+m.id,{assignedTo:m.assignedTo||null,status:m.status},()=>{
     closeAssign();
     const currentTab=document.querySelector('.tab.on');
     if(currentTab&&currentTab.id==='t-cal'){rCal();setTimeout(()=>calDayClick(m.date),50);}
@@ -2108,55 +1844,43 @@ function delM(id){
   if(!confirm('Supprimer cette mission ?'))return;
   fbDB.ref('casanova/missions/'+id).set(null)
     .then(()=>fbDB.ref('casanova/missions').once('value'))
-    .then(snap=>{
-      db.missions = snap.val() || {};
-      rAdmin();
-      toast('✅ Mission supprimée.');
-    })
+    .then(snap=>{db.missions = snap.val() || {};rAdmin();toast('✅ Mission supprimée.');})
     .catch(err=>alert('❌ Erreur : '+err.message));
 }
 
 function toggleVisibility(id){
-  const m=db.missions[id];
-  if(!m)return;
+  const m=db.missions[id];if(!m)return;
   m.visibility = m.visibility==='cachée' ? 'visible' : 'cachée';
-  fbUpdate('missions/'+id, {visibility:m.visibility}, ()=>{
-    rAdmin();
-    toast(m.visibility==='cachée'?'🔒 Mission cachée':'👁️ Mission visible');
-  });
+  fbUpdate('missions/'+id,{visibility:m.visibility},()=>{rAdmin();toast(m.visibility==='cachée'?'🔒 Mission cachée':'👁️ Mission visible');});
 }
 
 // ════════ TEMPLATES ════════
 function rTplGrid(){
   const grid=document.getElementById('tpl-grid');
-  if(!templates().length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-ico">🗂</div><div class="empty-t">Aucun modèle</div><div class="empty-s">Créez votre premier modèle de fiche</div></div>`;return}
-  grid.innerHTML=templates().map(t=>{
-    const photos=toArr(t.photos);
-    const hasPhotos=photos.length>0;
-    return`<div class="m-card">
-      <div class="m-card-photo">
-        ${hasPhotos?`<img src="${photos[0]}" onclick="openLB('${photos[0]}')" style="cursor:zoom-in"/>${photos.length>1?`<div class="ph-count">📷 ${photos.length}</div>`:''}`:`<div class="m-card-np"><span style="font-size:1.8rem">${getTypeIcon(t.type)||'✨'}</span><span>Aucune photo</span></div>`}
-        <div class="type-pip">${getTypeIcon(t.type)||'✨'} ${t.type}</div>
-      </div>
-      <div class="m-card-body">
-        <div class="m-card-t">${t.title}</div>
-        ${t.addr?`<div class="m-card-i" style="display:flex;align-items:center;justify-content:space-between;gap:.4rem"><span>📍 ${t.addr}</span><button onclick="openGPS('${(t.addr||'').replace(/'/g,"\\'")}\")" class="btn btn-o btn-sm" style="padding:.25rem .55rem;font-size:.7rem;flex-shrink:0">🗺️</button></div>`:''}
-        <div class="m-card-i" style="font-size:.75rem;line-height:1.5;color:var(--ink3)">${t.desc||''}</div>
-        ${t.duration?`<div class="m-card-i">⏱ ${t.duration}${t.notes?' · '+t.notes:''}</div>`:''}
-        <div class="m-card-foot">
-          <div class="m-price">${fmtA(t.amount)}</div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap">
-            <button class="ico-btn" title="Modifier" onclick="editTpl('${t.id}')">✏️</button>
-            ${hasPhotos?`<button class="ico-btn" title="Vider les photos (pour pouvoir supprimer)" onclick="clearTplPhotos('${t.id}')" style="color:var(--amber);border-color:var(--amber)">🖼️✕</button>`:''}
-            <button class="ico-btn" title="Supprimer" onclick="delTpl('${t.id}')">🗑</button>
-          </div>
-        </div>
-      </div>
-    </div>`;
+  const allTpl=templates();
+  const total=allTpl.length;
+  const pages=Math.max(1,Math.ceil(total/TPL_PAGE_SIZE));
+  if(adminTplPage>=pages) adminTplPage=pages-1;
+  if(adminTplPage<0) adminTplPage=0;
+  const slice=allTpl.slice(adminTplPage*TPL_PAGE_SIZE,(adminTplPage+1)*TPL_PAGE_SIZE);
+  // Pagination controls
+  const ctrl=document.getElementById('tpl-pag-ctrl');
+  if(ctrl){
+    ctrl.style.display=total>TPL_PAGE_SIZE?'flex':'none';
+    const lbl=document.getElementById('tpl-pag-lbl');
+    if(lbl) lbl.textContent=`Page ${adminTplPage+1}/${pages} · ${total} modèle${total>1?'s':''}`;
+    const prev=document.getElementById('tpl-prev');const next=document.getElementById('tpl-next');
+    if(prev) prev.disabled=adminTplPage===0;
+    if(next) next.disabled=adminTplPage>=pages-1;
+  }
+  if(!total){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-ico">🗂</div><div class="empty-t">Aucun modèle</div><div class="empty-s">Créez votre premier modèle de fiche</div></div>`;return}
+  grid.innerHTML=slice.map(t=>{
+    const photos=toArr(t.photos);const hasPhotos=photos.length>0;
+    return`<div class="m-card"><div class="m-card-photo">${hasPhotos?`<img src="${photos[0]}" onclick="openLB('${photos[0]}')" style="cursor:zoom-in"/>${photos.length>1?`<div class="ph-count">📷 ${photos.length}</div>`:''}`:`<div class="m-card-np"><span style="font-size:1.8rem">${getTypeIcon(t.type)||'✨'}</span><span>Aucune photo</span></div>`}<div class="type-pip">${getTypeIcon(t.type)||'✨'} ${t.type}</div></div><div class="m-card-body"><div class="m-card-t">${t.title}</div>${t.addr?`<div class="m-card-i" style="display:flex;align-items:center;justify-content:space-between;gap:.4rem"><span>📍 ${t.addr}</span><button onclick="openGPS('${(t.addr||'').replace(/'/g,"\\'")}\")" class="btn btn-o btn-sm" style="padding:.25rem .55rem;font-size:.7rem;flex-shrink:0">🗺️</button></div>`:''}<div class="m-card-i" style="font-size:.75rem;line-height:1.5;color:var(--ink3)">${t.desc||''}</div>${t.duration?`<div class="m-card-i">⏱ ${t.duration}${t.notes?' · '+t.notes:''}</div>`:''}<div class="m-card-foot"><div class="m-price">${fmtA(t.amount)}</div><div style="display:flex;gap:5px;flex-wrap:wrap"><button class="ico-btn" title="Modifier" onclick="editTpl('${t.id}')">✏️</button>${hasPhotos?`<button class="ico-btn" title="Vider les photos" onclick="clearTplPhotos('${t.id}')" style="color:var(--amber);border-color:var(--amber)">🖼️✕</button>`:''}<button class="ico-btn" title="Supprimer" onclick="delTpl('${t.id}')">🗑</button></div></div></div></div>`;
   }).join('');
 }
+function tplPage(dir){adminTplPage+=dir;rTplGrid();}
 
-// ── Template modal ──
 function openTpl(id){
   editTplId=id||null;tplPh=[];
   const t=id?templates().find(x=>x.id===id):null;
@@ -2173,39 +1897,20 @@ function openTpl(id){
   rPhPrev('tpl');
   document.getElementById('tpl-ov').classList.add('on');
 }
-function closeTpl(){document.getElementById('tpl-ov').classList.remove('on');editTplId=null;tplPh=[]}
-function editTpl(id){openTpl(id)}
-function clearTplPhotos(id){
-  if(!confirm('Supprimer toutes les photos de ce modèle ?'))return;
-  fbRemove('templates/'+id+'/photos', ()=>{
-    if(db.templates[id]) db.templates[id].photos=[];
-    rTplGrid();
-    toast('✅ Photos supprimées — vous pouvez maintenant supprimer le modèle.');
-  });
-}
+function closeTpl(){document.getElementById('tpl-ov').classList.remove('on');editTplId=null;tplPh=[];}
+function editTpl(id){openTpl(id);}
+function clearTplPhotos(id){if(!confirm('Supprimer toutes les photos de ce modèle ?'))return;fbRemove('templates/'+id+'/photos',()=>{if(db.templates[id]) db.templates[id].photos=[];rTplGrid();toast('✅ Photos supprimées.')});}
 
 function delTpl(id){
   if(!confirm('Supprimer ce modèle ?'))return;
-  // Étape 1 : vider les photos (peuvent être lourdes en base64)
-  fbDB.ref('casanova/templates/'+id+'/photos').set(null)
-    .catch(()=>{})
-    .then(()=>{
-      // Étape 2 : supprimer le modèle entier
-      return fbDB.ref('casanova/templates/'+id).set(null);
-    })
-    .then(()=>{
-      // Étape 3 : recharger depuis Firebase pour confirmer
-      return fbDB.ref('casanova/templates').once('value');
-    })
-    .then(snap=>{
-      db.templates = snap.val() || {};
-      rTplGrid();
-      toast('✅ Modèle supprimé.');
-    })
-    .catch(err=>{
-      alert('❌ Erreur : '+err.message);
-    });
+  fbDB.ref('casanova/templates/'+id+'/photos').set(null).catch(()=>{})
+    .then(()=>fbDB.ref('casanova/templates/'+id).set(null))
+    .then(()=>fbDB.ref('casanova/templates').once('value'))
+    .then(snap=>{db.templates = snap.val() || {};rTplGrid();toast('✅ Modèle supprimé.');})
+    .catch(err=>{alert('❌ Erreur : '+err.message);});
 }
+
+// ✅ MODIF 2 : saveTpl avec propagation du prix sur toutes les missions liées
 function saveTpl(){
   const title=document.getElementById('tpl-title').value.trim();
   if(!title){alert('Donnez un titre au modèle');return}
@@ -2223,243 +1928,191 @@ function saveTpl(){
   if(editTplId){db.templates[editTplId]=data;}
   else{ db.templates[data.id]=data; }
   fbSet('templates/'+data.id, data, ()=>{
-    closeTpl();rTplGrid();toast('✅ Modèle enregistré !');
+    if(editTplId){
+      // Chercher les missions liées non terminées
+      const liees=missions().filter(m=>m.tplId===editTplId&&m.crStatus===''&&m.status!=='terminée');
+      if(liees.length>0 && liees.some(m=>parseFloat(m.amount)!==data.amount)){
+        const oldAmt=liees[0].amount;
+        const msg='Le tarif a changé ('+fmtA(oldAmt)+' → '+fmtA(data.amount)+').\n\nMettre à jour le prix sur '+liees.length+' mission(s) liée(s) existante(s) et à venir ?';
+        if(confirm(msg)){
+          liees.forEach(m=>{
+            m.amount=data.amount;
+            db.missions[m.id]=m;
+            fbUpdate('missions/'+m.id,{amount:data.amount});
+          });
+          toast('✅ Modèle + '+liees.length+' mission(s) mis à jour !');
+        } else {
+          toast('✅ Modèle enregistré (missions inchangées).');
+        }
+      } else {
+        toast('✅ Modèle enregistré !');
+      }
+    } else {
+      toast('✅ Modèle enregistré !');
+    }
+    closeTpl();rTplGrid();
   });
 }
 
-// ── Ouvrir le modal "Nouvelle mission" depuis l'admin ──
 function openNewMission(preDate){
-  if(!templates().length){
-    if(confirm('Aucun modèle de fiche disponible.\nVoulez-vous en créer un maintenant ?')){openTpl()}
-    return;
-  }
-  if(templates().length===1){
-    openDup(templates()[0].id, preDate);
-    return;
-  }
-  // Plusieurs modèles : mini-sélecteur dans une modale
-  const opts=templates().map((t,i)=>`
-    <div onclick="closeMiniSel();openDup('${t.id}','${preDate||''}')" style="display:flex;align-items:center;gap:.85rem;padding:.75rem 1rem;border-radius:var(--radius-sm);border:1.5px solid var(--paper3);cursor:pointer;transition:all .15s;background:#fff;margin-bottom:.5rem" onmouseover="this.style.borderColor='var(--teal)';this.style.background='var(--teal-l)'" onmouseout="this.style.borderColor='var(--paper3)';this.style.background='#fff'">
-      <span style="font-size:1.4rem">${getTypeIcon(t.type)||'✨'}</span>
-      <div><div style="font-weight:500;font-size:.88rem">${t.title}</div><div style="font-size:.75rem;color:var(--ink3)">${fmtA(t.amount)}${t.duration?' · ⏱ '+t.duration:''}</div></div>
-    </div>`).join('');
-  // Injecter dans le modal mini
+  if(!templates().length){if(confirm('Aucun modèle disponible.\nVoulez-vous en créer un ?')){openTpl()}return;}
+  if(templates().length===1){openDup(templates()[0].id,preDate);return;}
+  const opts=templates().map(t=>`<div onclick="closeMiniSel();openDup('${t.id}','${preDate||''}')" style="display:flex;align-items:center;gap:.85rem;padding:.75rem 1rem;border-radius:var(--radius-sm);border:1.5px solid var(--paper3);cursor:pointer;transition:all .15s;background:#fff;margin-bottom:.5rem" onmouseover="this.style.borderColor='var(--teal)';this.style.background='var(--teal-l)'" onmouseout="this.style.borderColor='var(--paper3)';this.style.background='#fff'"><span style="font-size:1.4rem">${getTypeIcon(t.type)||'✨'}</span><div><div style="font-weight:500;font-size:.88rem">${t.title}</div><div style="font-size:.75rem;color:var(--ink3)">${fmtA(t.amount)}${t.duration?' · ⏱ '+t.duration:''}</div></div></div>`).join('');
   let mini=document.getElementById('mini-sel-ov');
-  if(!mini){
-    mini=document.createElement('div');
-    mini.id='mini-sel-ov';
-    mini.className='overlay on';
-    mini.innerHTML=`<div class="modal" style="max-width:420px"><div class="modal-hdr"><div class="modal-hdr-t">Choisir un modèle de fiche</div><button class="modal-x" onclick="closeMiniSel()">✕</button></div><div class="modal-body" id="mini-sel-body"></div><div class="modal-foot"><button class="btn btn-o" onclick="closeMiniSel()">Annuler</button></div></div>`;
-    document.body.appendChild(mini);
-  } else {
-    mini.classList.add('on');
-  }
+  if(!mini){mini=document.createElement('div');mini.id='mini-sel-ov';mini.className='overlay on';mini.innerHTML=`<div class="modal" style="max-width:420px"><div class="modal-hdr"><div class="modal-hdr-t">Choisir un modèle de fiche</div><button class="modal-x" onclick="closeMiniSel()">✕</button></div><div class="modal-body" id="mini-sel-body"></div><div class="modal-foot"><button class="btn btn-o" onclick="closeMiniSel()">Annuler</button></div></div>`;document.body.appendChild(mini);}else{mini.classList.add('on');}
   document.getElementById('mini-sel-body').innerHTML=opts;
 }
-function closeMiniSel(){
-  const mini=document.getElementById('mini-sel-ov');
-  if(mini)mini.classList.remove('on');
-}
+function closeMiniSel(){const mini=document.getElementById('mini-sel-ov');if(mini)mini.classList.remove('on');}
 
-// ── Relance équipe : nouvelles missions + CR en attente ──
 function sendRelanceEquipe(){
   const agents=members().filter(m=>m.role!=='admin'&&m.status==='actif');
   if(!agents.length){toast('Aucun agent actif');return}
-
   const dispMissions=missions().filter(m=>m.status==='disponible');
   const now=new Date().toLocaleString('fr-FR');
-
   let msg=`Bonjour à toute l'équipe,\n\n`;
-  if(dispMissions.length){
-    msg+=`📋 ${dispMissions.length} mission(s) disponible(s) :\n`;
-    dispMissions.forEach(m=>msg+=`  • ${m.title} — ${fmtD(m.date)} — ${fmtA(m.amount)}\n`);
-    msg+=`\n`;
-  }
-
+  if(dispMissions.length){msg+=`📋 ${dispMissions.length} mission(s) disponible(s) :\n`;dispMissions.forEach(m=>msg+=`  • ${m.title} — ${fmtD(m.date)} — ${fmtA(m.amount)}\n`);msg+=`\n`;}
   const crLines=[];
-  agents.forEach(agent=>{
-    const crP=missions().filter(m=>m.assignedTo===agent.id&&m.crStatus===''&&m.status==='en cours');
-    if(crP.length){
-      crLines.push(`${agent.name} : ${crP.length} CR en attente`);
-      crP.forEach(m=>crLines.push(`  • ${m.title} — ${fmtD(m.date)}`));
-    }
-  });
-  if(crLines.length){
-    msg+=`⏰ Comptes rendus en attente :\n${crLines.join('\n')}\n\n`;
-  }
-  if(!dispMissions.length&&!crLines.length){
-    msg+=`Aucune mission disponible ni CR en attente pour le moment.\n\n`;
-  }
+  agents.forEach(agent=>{const crP=missions().filter(m=>m.assignedTo===agent.id&&m.crStatus===''&&m.status==='en cours');if(crP.length){crLines.push(`${agent.name} : ${crP.length} CR en attente`);crP.forEach(m=>crLines.push(`  • ${m.title} — ${fmtD(m.date)}`));}});
+  if(crLines.length){msg+=`⏰ Comptes rendus en attente :\n${crLines.join('\n')}\n\n`;}
+  if(!dispMissions.length&&!crLines.length){msg+=`Aucune mission disponible ni CR en attente pour le moment.\n\n`;}
   msg+=`Connectez-vous sur Casanova Clean Pro pour gérer vos missions.\n\nCordialement,\nCasanova Clean Pro`;
-
-  const toAll=agents.map(a=>a.email).join(',');
-  sendEmail({
-    to:toAll,
-    toName:'Équipe',
-    subject:`📋 Casanova Clean Pro — Récap ${now}`,
-    message:msg
-  });
+  sendEmail({to:agents.map(a=>a.email).join(','),toName:'Équipe',subject:`📋 Casanova Clean Pro — Récap ${now}`,message:msg});
 }
 
-// ── Email auto quand une mission est publiée ──
 function notifyMissionPubliee(mission){
   const agents=members().filter(m=>m.role!=='admin'&&m.status==='actif');
-
-  if(mission.assignedTo){
-    // Assignée directement → notifier uniquement l'agent concerné
-    const agent=agents.find(a=>a.id===mission.assignedTo);
-    if(agent){
-      sendEmail({
-        to:agent.email,
-        toName:agent.name,
-        subject:`✅ Mission assignée — ${mission.title}`,
-        message:`Bonjour ${agent.firstName||agent.name},\n\nUne mission vous a été assignée :\n\n📌 ${mission.title}\n📅 ${fmtD(mission.date)}\n💶 ${fmtA(mission.amount)}\n${mission.tplNotes?'\n📝 Notes : '+mission.tplNotes:''}\n\nConnectez-vous sur Casanova Clean Pro pour voir les détails.\n\nCordialement,\nCasanova Clean Pro`
-      });
-    }
-  } else {
-    // Disponible pour tous → un seul email à toute l'équipe
-    if(!agents.length) return;
-    const toAll=agents.map(a=>a.email).join(',');
-    sendEmail({
-      to:toAll,
-      toName:'Équipe',
-      subject:`🆕 Nouvelle mission disponible — ${mission.title}`,
-      message:`Bonjour à toute l'équipe,\n\nUne nouvelle mission est disponible :\n\n📌 ${mission.title}\n📅 ${fmtD(mission.date)}\n💶 ${fmtA(mission.amount)}\n\nConnectez-vous sur Casanova Clean Pro pour l'accepter (premier arrivé, premier servi).\n\nCordialement,\nCasanova Clean Pro`
-    });
-  }
+  if(mission.assignedTo){const agent=agents.find(a=>a.id===mission.assignedTo);if(agent){sendEmail({to:agent.email,toName:agent.name,subject:`✅ Mission assignée — ${mission.title}`,message:`Bonjour ${agent.firstName||agent.name},\n\nUne mission vous a été assignée :\n\n📌 ${mission.title}\n📅 ${fmtD(mission.date)}\n💶 ${fmtA(mission.amount)}\n\nConnectez-vous sur Casanova Clean Pro pour voir les détails.\n\nCordialement,\nCasanova Clean Pro`});}}
+  else{if(!agents.length) return;sendEmail({to:agents.map(a=>a.email).join(','),toName:'Équipe',subject:`🆕 Nouvelle mission disponible — ${mission.title}`,message:`Bonjour à toute l'équipe,\n\nUne nouvelle mission est disponible :\n\n📌 ${mission.title}\n📅 ${fmtD(mission.date)}\n💶 ${fmtA(mission.amount)}\n\nConnectez-vous sur Casanova Clean Pro pour l'accepter.\n\nCordialement,\nCasanova Clean Pro`});}
 }
+
 function openDup(tplId, preDate){
   if(!tplId){alert('Erreur : aucun modèle spécifié.');return}
-  const t=templates().find(x=>x.id===tplId);
-  if(!t){alert('Modèle introuvable (id='+tplId+')');return}
-  dupTplId=tplId;
-  dupPh=[];
-  // Titre du modal
-  const hdr=document.querySelector('#dup-ov .modal-hdr-t');
-  if(hdr) hdr.textContent='Nouvelle mission — '+t.title;
-  // Champs
+  const t=templates().find(x=>x.id===tplId);if(!t){alert('Modèle introuvable (id='+tplId+')');return}
+  dupTplId=tplId;dupPh=[];
+  const hdr=document.querySelector('#dup-ov .modal-hdr-t');if(hdr) hdr.textContent='Nouvelle mission — '+t.title;
   document.getElementById('d-amount').value=t.amount||'';
   document.getElementById('d-date').value=preDate&&preDate!==''?preDate:tod();
   document.getElementById('d-notes').value='';
   document.getElementById('d-visibility').value='visible';
-  // Liste des agents
   const sel=document.getElementById('d-assign');
   sel.innerHTML='<option value="">— Laisser disponible —</option>';
-  members().filter(m=>m.status==='actif').forEach(m=>{
-    const o=document.createElement('option');
-    o.value=m.id;
-    o.textContent=m.name+' ('+m.email+')';
-    sel.appendChild(o);
-  });
+  members().filter(m=>m.status==='actif').forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.name+' ('+m.email+')';sel.appendChild(o);});
   rPhPrev('dup');
   document.getElementById('dup-ov').classList.add('on');
 }
-function closeDup(){
-  document.getElementById('dup-ov').classList.remove('on');
-  dupTplId=null;
-  dupPh=[];
-}
+function closeDup(){document.getElementById('dup-ov').classList.remove('on');dupTplId=null;dupPh=[];}
 
 function createMission(){
   try{
-    // 1. Vérifier que le modèle est bien chargé
     if(!dupTplId){alert('Erreur : aucun modèle sélectionné. Fermez et réessayez.');return}
-    const tpl=templates().find(x=>x.id===dupTplId);
-    if(!tpl){alert('Erreur : modèle introuvable (id='+dupTplId+'). Fermez et réessayez.');return}
-
-    // 2. Lire les champs
+    const tpl=templates().find(x=>x.id===dupTplId);if(!tpl){alert('Erreur : modèle introuvable (id='+dupTplId+'). Fermez et réessayez.');return}
     const date=(document.getElementById('d-date').value||'').trim();
     const amountRaw=(document.getElementById('d-amount').value||'').trim();
     const amount=parseFloat(amountRaw);
-
-    // 3. Validation
     if(!date){alert('La date est obligatoire.');document.getElementById('d-date').focus();return}
     if(!amountRaw||isNaN(amount)||amount<=0){alert('Le tarif est obligatoire et doit être un nombre positif.');document.getElementById('d-amount').focus();return}
-
     const assignTo=document.getElementById('d-assign').value||null;
-
-    const mission={
-      id:uid(),
-      tplId:dupTplId,
-      type:tpl.type||'autre',
-      title:tpl.title||'Mission',
-      desc:tpl.desc||'',
-      duration:tpl.duration||'',
-      tplNotes:tpl.notes||'',
-      clientName:'',
-      firstName:'',
-      lastName:'',
-      addr:tpl.addr||'',
-      phone:'',
-      email:'',
-      clientNotes:(document.getElementById('d-notes').value||'').trim(),
-      visibility:document.getElementById('d-visibility').value||'visible',
-      amount,
-      date,
-      status:assignTo?'en cours':'disponible',
-      assignedTo:assignTo||null,
-      crText:'',crStatus:'',crRating:'',crTime:'',crNextDate:'',
-      crPhotos:[],crChecklist:{},crDate:'',crCustom:'',
-      photos:[...toArr(tpl.photos),...dupPh]
-    };
-
+    const mission={id:uid(),tplId:dupTplId,type:tpl.type||'autre',title:tpl.title||'Mission',desc:tpl.desc||'',duration:tpl.duration||'',tplNotes:tpl.notes||'',clientName:'',firstName:'',lastName:'',addr:tpl.addr||'',phone:'',email:'',clientNotes:(document.getElementById('d-notes').value||'').trim(),visibility:document.getElementById('d-visibility').value||'visible',amount,date,status:assignTo?'en cours':'disponible',assignedTo:assignTo||null,crText:'',crStatus:'',crRating:'',crTime:'',crNextDate:'',crPhotos:[],crChecklist:{},crDate:'',crCustom:'',photos:[...toArr(tpl.photos),...dupPh]};
     db.missions[mission.id]=mission;
     fbSet('missions/'+mission.id, mission, ()=>{
-      closeDup();
-      notifyMissionPubliee(mission);
+      closeDup();notifyMissionPubliee(mission);
       const agentName=assignTo?members().find(x=>x.id===assignTo)?.name:'';
       toast('✅ Mission publiée : '+mission.title+(agentName?' · assignée à '+agentName:''));
       const currentTab=document.querySelector('.tab.on');
       if(currentTab&&currentTab.id==='t-cal'){rCal();setTimeout(()=>calDayClick(date),50);}
       else rAdmin();
     });
-
-  }catch(err){
-    console.error('createMission error:',err);
-    alert('Erreur lors de la publication : '+err.message+'\n\nConsultez la console pour plus de détails.');
-  }
+  }catch(err){console.error('createMission error:',err);alert('Erreur lors de la publication : '+err.message);}
 }
 
-// ════════ PHOTOS ════════
-// ════════ CLOUDINARY — STOCKAGE PHOTOS ════════
+// ════════ MISSION UNIQUE (sans modèle, non sauvegardée en base) ════════
+function openMissionUnique(preDate){
+  populateTypeSelect('uq-type','');
+  document.getElementById('uq-title').value='';
+  document.getElementById('uq-addr').value='';
+  document.getElementById('uq-desc').value='';
+  document.getElementById('uq-amount').value='';
+  document.getElementById('uq-duration').value='';
+  document.getElementById('uq-date').value=preDate&&preDate!==''?preDate:tod();
+  document.getElementById('uq-visibility').value='visible';
+  document.getElementById('uq-notes').value='';
+  const sel=document.getElementById('uq-assign');
+  sel.innerHTML='<option value="">— Laisser disponible —</option>';
+  members().filter(m=>m.status==='actif').forEach(m=>{
+    const o=document.createElement('option');o.value=m.id;
+    o.textContent=m.name+' ('+m.email+')';sel.appendChild(o);
+  });
+  document.getElementById('unique-ov').classList.add('on');
+}
+function closeUnique(){document.getElementById('unique-ov').classList.remove('on');}
+
+function createUniqueMission(){
+  const title=(document.getElementById('uq-title').value||'').trim();
+  const amountRaw=(document.getElementById('uq-amount').value||'').trim();
+  const date=(document.getElementById('uq-date').value||'').trim();
+  const amount=parseFloat(amountRaw);
+  if(!title){alert('Le titre est obligatoire.');document.getElementById('uq-title').focus();return}
+  if(!date){alert('La date est obligatoire.');document.getElementById('uq-date').focus();return}
+  if(!amountRaw||isNaN(amount)||amount<=0){alert('Le tarif est obligatoire.');document.getElementById('uq-amount').focus();return}
+  const assignTo=document.getElementById('uq-assign').value||null;
+  const mission={
+    id:uid(),
+    tplId:null,
+    isUnique:true,
+    type:document.getElementById('uq-type').value||'autre',
+    title,
+    desc:(document.getElementById('uq-desc').value||'').trim(),
+    duration:(document.getElementById('uq-duration').value||'').trim(),
+    tplNotes:(document.getElementById('uq-notes').value||'').trim(),
+    clientNotes:'',clientName:'',firstName:'',lastName:'',
+    addr:(document.getElementById('uq-addr').value||'').trim(),
+    phone:'',email:'',
+    visibility:document.getElementById('uq-visibility').value||'visible',
+    amount,date,
+    status:assignTo?'en cours':'disponible',
+    assignedTo:assignTo||null,
+    crText:'',crStatus:'',crPhotos:[],crChecklist:{},crDate:'',crCustom:'',crRating:'',crTime:'',crNextDate:'',
+    photos:[]
+  };
+  db.missions[mission.id]=mission;
+  fbSet('missions/'+mission.id, mission, ()=>{
+    closeUnique();
+    notifyMissionPubliee(mission);
+    const agentName=assignTo?members().find(x=>x.id===assignTo)?.name:'';
+    toast('⚡ Mission unique publiée : '+mission.title+(agentName?' · assignée à '+agentName:''));
+    const currentTab=document.querySelector('.tab.on');
+    if(currentTab&&currentTab.id==='t-cal'){rCal();setTimeout(()=>calDayClick(date),50);}
+    else rAdmin();
+  });
+}
+
+
 const CLOUDINARY_CLOUD = 'dortcgc2u';
 const CLOUDINARY_PRESET = 'casanova';
 
 async function uploadPhoto(file){
-  // Compresser d'abord
   const compressed = await compressImage(file);
-  // Convertir base64 en blob
   const res = await fetch(compressed);
   const blob = await res.blob();
-  // Upload vers Cloudinary
   const formData = new FormData();
   formData.append('file', blob);
   formData.append('upload_preset', CLOUDINARY_PRESET);
   formData.append('folder', 'casanova-clean-pro');
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
-    {method:'POST', body:formData}
-  );
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,{method:'POST',body:formData});
   if(!response.ok) throw new Error('Cloudinary upload failed: '+response.status);
   const data = await response.json();
-  return data.secure_url; // URL permanente de l'image
+  return data.secure_url;
 }
 
-// Compression image (max 800px, qualité 70%)
 function compressImage(file){
   return new Promise(resolve=>{
     const reader=new FileReader();
     reader.onload=ev=>{
       const img=new Image();
       img.onload=()=>{
-        const MAX=800;
-        let w=img.width,h=img.height;
-        if(w>MAX||h>MAX){
-          if(w>h){h=Math.round(h*MAX/w);w=MAX;}
-          else{w=Math.round(w*MAX/h);h=MAX;}
-        }
-        const canvas=document.createElement('canvas');
-        canvas.width=w;canvas.height=h;
+        const MAX=800;let w=img.width,h=img.height;
+        if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
         canvas.getContext('2d').drawImage(img,0,0,w,h);
         resolve(canvas.toDataURL('image/jpeg',0.7));
       };
@@ -2470,50 +2123,32 @@ function compressImage(file){
 }
 
 function addPhotos(e,target){
-  const files=Array.from(e.target.files);
-  if(!files.length) return;
+  const files=Array.from(e.target.files);if(!files.length) return;
   toast('⏳ Upload des photos en cours…');
   Promise.all(files.map(f=>uploadPhoto(f)))
     .then(urls=>{
-      urls.forEach(url=>{
-        if(target==='tpl') tplPh.push(url);
-        else if(target==='dup') dupPh.push(url);
-        else if(target==='cr') crPh.push(url);
-      });
-      rPhPrev(target);
-      toast('✅ '+urls.length+' photo(s) uploadée(s) !');
+      urls.forEach(url=>{if(target==='tpl')tplPh.push(url);else if(target==='dup')dupPh.push(url);else if(target==='cr')crPh.push(url);});
+      rPhPrev(target);toast('✅ '+urls.length+' photo(s) uploadée(s) !');
     })
-    .catch(err=>{
-      console.error('Cloudinary error:', err);
-      toast('❌ Erreur upload photo : '+err.message);
-    });
+    .catch(err=>{console.error('Cloudinary error:',err);toast('❌ Erreur upload photo : '+err.message);});
   e.target.value='';
 }
 
 function rPhPrev(target){
   const photos=target==='tpl'?tplPh:target==='dup'?dupPh:crPh;
-  const c=document.getElementById(target+'-ph-prev');
-  if(!c)return;
-  c.innerHTML=photos.map((p,i)=>`
-    <div class="ph-thumb${i===0?' main-ph':''}">
-      <img src="${p}" onclick="openLB('${p}')" style="cursor:zoom-in"/>
-      <button class="ph-del" onclick="delPh('${target}',${i})">✕</button>
-    </div>`).join('');
+  const c=document.getElementById(target+'-ph-prev');if(!c)return;
+  c.innerHTML=photos.map((p,i)=>`<div class="ph-thumb${i===0?' main-ph':''}"><img src="${p}" onclick="openLB('${p}')" style="cursor:zoom-in"/><button class="ph-del" onclick="delPh('${target}',${i})">✕</button></div>`).join('');
 }
 
 function delPh(target,i){
-  if(target==='tpl')tplPh.splice(i,1);
-  else if(target==='dup')dupPh.splice(i,1);
-  else if(target==='cr')crPh.splice(i,1);
+  if(target==='tpl')tplPh.splice(i,1);else if(target==='dup')dupPh.splice(i,1);else if(target==='cr')crPh.splice(i,1);
   rPhPrev(target);
 }
 
-// ════════ SERVICE WORKER PWA ════════
+// ════════ PWA ════════
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('sw.js')
-      .then(()=>console.log('✅ PWA active'))
-      .catch(e=>console.warn('SW:',e));
+    navigator.serviceWorker.register('sw.js').then(()=>console.log('✅ PWA active')).catch(e=>console.warn('SW:',e));
   });
 }
 </script>
