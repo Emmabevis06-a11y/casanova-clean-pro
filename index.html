@@ -18,6 +18,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -955,7 +956,7 @@ a{color:inherit;text-decoration:none}
 // À incrémenter à CHAQUE déploiement : c'est ce qui purge le cache du service worker.
 // Repère interne : sert uniquement à purger le cache du service worker au déploiement.
 // Non affiché dans l'interface. À changer à chaque mise en ligne.
-const APP_VERSION = '2026-09-14j';
+const APP_VERSION = '2026-09-14k';
 (function(){
   try{
     const K='ccp_app_version';
@@ -1092,7 +1093,15 @@ let dbLoaded = false;
 
 function initFirebase(onReady){
   document.getElementById('loading-screen').style.display='flex';
-  dbRef.once('value').then(snap=>{
+  // Connexion anonyme à Firebase : elle ne remplace pas le code PIN (qui protège l'interface),
+  // elle permet aux règles de la base de refuser toute requête extérieure à l'application.
+  const pret = (firebase.auth && firebase.auth().signInAnonymously)
+    ? firebase.auth().signInAnonymously().catch(e=>{
+        console.warn('Auth anonyme indisponible :', e && e.code);
+        return null;   // on continue : l'app reste utilisable si l'option n'est pas activée
+      })
+    : Promise.resolve(null);
+  pret.then(()=>dbRef.once('value')).then(snap=>{
     const data = snap.val();
     if(data && data.members){
       db = data;
